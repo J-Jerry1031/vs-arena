@@ -1,430 +1,309 @@
-"use client";
+import Link from "next/link";
+import {
+  type Arena,
+  arenas,
+  getArenaBadge,
+  getArenaHotComment,
+  getArenaStats,
+  initialComments,
+  statusMeta,
+} from "@/lib/arena-data";
 
-import { useMemo, useState } from "react";
-
-type Side = "A" | "B";
-type SortType = "hot" | "new";
-
-type Debate = {
-  id: number;
-  title: string;
-  optionA: string;
-  optionB: string;
-  category: string;
-  participants: number;
+type HomeProps = {
+  searchParams?: Promise<{ category?: string }>;
 };
 
-type Comment = {
-  id: number;
-  debateId: number;
-  side: Side;
-  nickname: string;
-  text: string;
-  likes: number;
-  createdAt: number;
+const getArenaPulse = (arena: Arena) => {
+  const stats = getArenaStats(arena, initialComments);
+  const gap = Math.abs(stats.aPercent - stats.bPercent);
+  const hotComment = getArenaHotComment(arena.id, initialComments);
+
+  if (arena.status === "upcoming") return "곧 판 깔림";
+  if (arena.status === "closed") return "명경기 박제";
+  if (gap <= 8 && stats.commentCount >= 2) return "역전각";
+  if (stats.heatScore > 600) return "댓글 터짐";
+  if (hotComment && hotComment.likes > 90) return "한 방 나옴";
+  if (gap >= 30) return "한쪽 개맞는중";
+
+  return "슬슬 달아오름";
 };
 
-const debates: Debate[] = [
-  {
-    id: 1,
-    title: "외계인은 존재할까?",
-    optionA: "있다",
-    optionB: "없다",
-    category: "미스터리",
-    participants: 12421,
-  },
-  {
-    id: 2,
-    title: "AI는 인간을 대체할까?",
-    optionA: "대체한다",
-    optionB: "못 한다",
-    category: "미래",
-    participants: 8312,
-  },
-  {
-    id: 3,
-    title: "맨손 은가누 vs 방망이 든 오타니",
-    optionA: "은가누",
-    optionB: "오타니",
-    category: "상상배틀",
-    participants: 19204,
-  },
-  {
-    id: 4,
-    title: "민트초코는 맛인가 벌칙인가?",
-    optionA: "맛이다",
-    optionB: "벌칙이다",
-    category: "밈",
-    participants: 6771,
-  },
-];
+const getTrendCopy = (arena: Arena) => {
+  const stats = getArenaStats(arena, initialComments);
 
-const initialComments: Comment[] = [
-  {
-    id: 1,
-    debateId: 1,
-    side: "A",
-    nickname: "우주광인",
-    text: "우주가 이렇게 넓은데 인간만 있다는 게 더 말이 안 됨.",
-    likes: 42,
-    createdAt: 1,
-  },
-  {
-    id: 2,
-    debateId: 1,
-    side: "B",
-    nickname: "현실주의자",
-    text: "있으면 왜 아직 제대로 된 증거가 하나도 없음?",
-    likes: 31,
-    createdAt: 2,
-  },
-  {
-    id: 3,
-    debateId: 2,
-    side: "A",
-    nickname: "알파고형님",
-    text: "반복 업무는 이미 끝났고, 다음은 판단 업무임.",
-    likes: 58,
-    createdAt: 3,
-  },
-  {
-    id: 4,
-    debateId: 3,
-    side: "B",
-    nickname: "야구몽둥이",
-    text: "방망이는 거리 조절이 된다. 이게 진짜 크다.",
-    likes: 77,
-    createdAt: 4,
-  },
-];
+  if (arena.status === "upcoming") {
+    return `${arena.scheduledAt} 오픈 대기`;
+  }
 
-export default function Home() {
-  const [selectedDebateId, setSelectedDebateId] = useState(1);
-  const [selectedSide, setSelectedSide] = useState<Side>("A");
-  const [comments, setComments] = useState<Comment[]>(initialComments);
-  const [text, setText] = useState("");
-  const [sortType, setSortType] = useState<SortType>("hot");
-  const [category, setCategory] = useState("전체");
+  if (arena.status === "closed") {
+    return `최종 ${stats.aPercent}:${stats.bPercent}`;
+  }
 
-  const categories = ["전체", ...Array.from(new Set(debates.map((d) => d.category)))];
+  if (stats.aPercent === stats.bPercent) {
+    return "반반이라 아무 말이나 해도 불 붙음";
+  }
 
-  const filteredDebates =
-    category === "전체"
-      ? debates
-      : debates.filter((debate) => debate.category === category);
+  const leadingSide = stats.aPercent > stats.bPercent ? arena.optionA : arena.optionB;
+  const trailingSide = stats.aPercent > stats.bPercent ? arena.optionB : arena.optionA;
 
-  const selectedDebate = debates.find((d) => d.id === selectedDebateId)!;
+  return `${leadingSide} 우세, ${trailingSide} 반격 대기`;
+};
 
-  const debateComments = comments
-    .filter((comment) => comment.debateId === selectedDebateId)
-    .sort((a, b) => {
-      if (sortType === "new") return b.createdAt - a.createdAt;
-      return b.likes - a.likes;
-    });
-
-  const sideCounts = useMemo(() => {
-    const a = comments.filter(
-      (c) => c.debateId === selectedDebateId && c.side === "A"
-    ).length;
-
-    const b = comments.filter(
-      (c) => c.debateId === selectedDebateId && c.side === "B"
-    ).length;
-
-    return { a, b, total: a + b };
-  }, [comments, selectedDebateId]);
-
-  const aPercent =
-    sideCounts.total === 0
-      ? 50
-      : Math.round((sideCounts.a / sideCounts.total) * 100);
-
-  const bPercent = 100 - aPercent;
-  const bestComment = [...debateComments].sort((a, b) => b.likes - a.likes)[0];
-
-  const addComment = () => {
-    if (!text.trim()) return;
-
-    const newComment: Comment = {
-      id: Date.now(),
-      debateId: selectedDebateId,
-      side: selectedSide,
-      nickname: "익명의 논객",
-      text,
-      likes: 0,
-      createdAt: Date.now(),
-    };
-
-    setComments([newComment, ...comments]);
-    setText("");
-  };
-
-  const likeComment = (id: number) => {
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === id
-          ? { ...comment, likes: comment.likes + 1 }
-          : comment
-      )
-    );
-  };
+export default async function Home({ searchParams }: HomeProps) {
+  const selectedCategory = (await searchParams)?.category ?? "전체";
+  const liveArenas = arenas.filter((arena) => statusMeta[arena.status].canJoin);
+  const totalSpectators = liveArenas.reduce(
+    (sum, arena) => sum + arena.spectators,
+    0
+  );
+  const categories = ["전체", ...new Set(arenas.map((arena) => arena.category))];
+  const filteredArenas =
+    selectedCategory === "전체"
+      ? arenas
+      : arenas.filter((arena) => arena.category === selectedCategory);
+  const rankedArenas = [...filteredArenas].sort(
+    (a, b) =>
+      getArenaStats(b, initialComments).heatScore -
+      getArenaStats(a, initialComments).heatScore
+  );
+  const allRankedArenas = [...arenas].sort(
+    (a, b) =>
+      getArenaStats(b, initialComments).heatScore -
+      getArenaStats(a, initialComments).heatScore
+  );
+  const topArenas = rankedArenas
+    .filter((arena) => statusMeta[arena.status].canJoin)
+    .slice(0, 3);
+  const fallbackTopArenas = allRankedArenas
+    .filter((arena) => statusMeta[arena.status].canJoin)
+    .slice(0, 3);
+  const visibleTopArenas = topArenas.length > 0 ? topArenas : fallbackTopArenas;
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
-      <section className="mx-auto max-w-6xl px-5 py-8">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen overflow-hidden bg-[#08090d] text-zinc-100">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-tight">VS ARENA</h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              세상 쓸데없지만 이상하게 진심이 되는 토론장
+            <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-300">
+              Editorial Battle Arena
+            </p>
+            <h1 className="mt-2 text-4xl font-black tracking-normal text-white sm:text-6xl">
+              VS ARENA
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">
+              지금 어디가 제일 불타는지만 보고 들어가면 됨. 입 터는 건
+              상세 링에서 제대로.
             </p>
           </div>
 
-          <div className="rounded-full border border-orange-500/40 bg-orange-500/10 px-5 py-2 text-sm font-bold text-orange-300">
-            🔥 실시간 참전 {selectedDebate.participants.toLocaleString()}명
+            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[420px]">
+            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+              <div className="text-lg font-black text-white">
+                {totalSpectators.toLocaleString()}
+              </div>
+              <div className="text-xs text-zinc-500">실시간 관전</div>
+            </div>
+            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+              <div className="text-lg font-black text-white">
+                {liveArenas.length}
+              </div>
+              <div className="text-xs text-zinc-500">열린 경기</div>
+            </div>
+            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+              <div className="text-lg font-black text-amber-300">
+                {initialComments.length}
+              </div>
+              <div className="text-xs text-zinc-500">샘플 댓글</div>
+            </div>
+            <Link
+              href="/admin"
+              className="border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-zinc-300 transition hover:border-amber-300/60 hover:text-amber-200 md:hidden"
+            >
+              운영 콘솔
+            </Link>
           </div>
         </header>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          {categories.map((item) => (
-            <button
-              key={item}
-              onClick={() => setCategory(item)}
-              className={`rounded-full border px-4 py-2 text-sm transition ${
-                category === item
-                  ? "border-orange-500 bg-orange-500 text-black"
-                  : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
-              }`}
+        <section className="border-b border-white/10 py-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black text-white">
+                지금 불타는 아레나 TOP 3
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500">
+                한 줄 HOT만 보고 바로 링 입장. 긴 댓글은 상세에서 펼쳐짐.
+              </p>
+            </div>
+            <span className="border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-200">
+              LIVE HEAT
+            </span>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            {visibleTopArenas.map((arena, index) => {
+              const stats = getArenaStats(arena, initialComments);
+              const preview = getArenaHotComment(arena.id, initialComments);
+              const badge = getArenaBadge(arena, initialComments);
+
+              return (
+                <Link
+                  key={arena.id}
+                  href={`/arena/${arena.id}`}
+                  className={`border p-4 text-left transition hover:-translate-y-0.5 ${
+                    index === 0
+                      ? "border-amber-300/50 bg-amber-300/10"
+                      : "border-white/10 bg-white/[0.04] hover:border-cyan-300/40"
+                  }`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <span className="text-xs font-black text-cyan-300">
+                      #{index + 1}
+                    </span>
+                    <span
+                      className={`border px-2 py-1 text-xs font-black ${
+                        index === 0
+                          ? "border-amber-300 bg-amber-300 text-black"
+                          : "border-cyan-300/30 bg-cyan-300/10 text-cyan-200"
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  </div>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="bg-amber-300 px-2 py-1 text-xs font-black text-black">
+                      {getArenaPulse(arena)}
+                    </span>
+                    <span className="border border-white/10 px-2 py-1 text-xs font-bold text-zinc-400">
+                      {getTrendCopy(arena)}
+                    </span>
+                  </div>
+                  <div className="text-lg font-black leading-snug text-white">
+                    {arena.title}
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden bg-white/10">
+                    <div
+                      className="inline-block h-full bg-rose-400"
+                      style={{ width: `${stats.aPercent}%` }}
+                    />
+                    <div
+                      className="inline-block h-full bg-sky-400"
+                      style={{ width: `${stats.bPercent}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 flex justify-between text-xs text-zinc-500">
+                    <span>{stats.aPercent}%</span>
+                    <span>
+                      댓글 {stats.commentCount} · 점수{" "}
+                      {Math.round(stats.heatScore)}
+                    </span>
+                    <span>{stats.bPercent}%</span>
+                  </div>
+                  {preview ? (
+                    <p className="mt-3 line-clamp-2 border-l border-amber-300/40 pl-3 text-sm leading-relaxed text-zinc-300">
+                      HOT: &ldquo;{preview.text}&rdquo;
+                    </p>
+                  ) : null}
+                  <div className="mt-3 text-xs font-black text-amber-200">
+                    링 입장하기
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="space-y-4">
+            <Link
+              href="/admin"
+              className="hidden border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-300 hover:text-black lg:block"
             >
-              {item}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-          <aside className="space-y-3">
-            <h2 className="text-sm font-bold text-zinc-400">토론 주제</h2>
-
-            {filteredDebates.map((debate) => (
-              <button
-                key={debate.id}
-                onClick={() => {
-                  setSelectedDebateId(debate.id);
-                  setSelectedSide("A");
-                }}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
-                  debate.id === selectedDebateId
-                    ? "border-orange-500 bg-orange-500/10"
-                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-600"
-                }`}
-              >
-                <div className="mb-2 text-xs text-orange-300">
-                  #{debate.category}
-                </div>
-                <div className="font-bold">{debate.title}</div>
-                <div className="mt-2 text-sm text-zinc-400">
-                  {debate.optionA} vs {debate.optionB}
-                </div>
-                <div className="mt-3 text-xs text-zinc-500">
-                  🔥 {debate.participants.toLocaleString()}명 참전 중
-                </div>
-              </button>
-            ))}
+              운영 콘솔 열기
+            </Link>
+            <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
+              {categories.map((item) => (
+                <Link
+                  key={item}
+                  href={item === "전체" ? "/" : `/?category=${encodeURIComponent(item)}`}
+                  className={`shrink-0 border px-3 py-2 text-sm font-bold transition ${
+                    selectedCategory === item
+                      ? "border-cyan-300 bg-cyan-300 text-black"
+                      : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-cyan-300/50"
+                  }`}
+                >
+                  {item}
+                </Link>
+              ))}
+            </div>
           </aside>
 
-          <section className="space-y-6">
-            <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-              <div className="mb-3 text-sm text-orange-300">
-                #{selectedDebate.category}
-              </div>
-
-              <h2 className="text-3xl font-black">{selectedDebate.title}</h2>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <button
-                  onClick={() => setSelectedSide("A")}
-                  className={`rounded-2xl border p-5 text-left transition ${
-                    selectedSide === "A"
-                      ? "border-red-400 bg-red-500/20 shadow-lg shadow-red-500/10"
-                      : "border-zinc-700 bg-zinc-950 hover:border-red-400/60"
-                  }`}
-                >
-                  <div className="text-xs text-zinc-400">A 진영</div>
-                  <div className="mt-1 text-2xl font-black">
-                    {selectedDebate.optionA}
-                  </div>
-                  <div className="mt-2 text-sm text-zinc-400">
-                    현재 {aPercent}% 지지
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setSelectedSide("B")}
-                  className={`rounded-2xl border p-5 text-left transition ${
-                    selectedSide === "B"
-                      ? "border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/10"
-                      : "border-zinc-700 bg-zinc-950 hover:border-blue-400/60"
-                  }`}
-                >
-                  <div className="text-xs text-zinc-400">B 진영</div>
-                  <div className="mt-1 text-2xl font-black">
-                    {selectedDebate.optionB}
-                  </div>
-                  <div className="mt-2 text-sm text-zinc-400">
-                    현재 {bPercent}% 지지
-                  </div>
-                </button>
-              </div>
-
-              <div className="mt-5 flex h-4 overflow-hidden rounded-full bg-zinc-800">
-                <div
-                  className="bg-red-500 transition-all"
-                  style={{ width: `${aPercent}%` }}
-                />
-                <div
-                  className="bg-blue-500 transition-all"
-                  style={{ width: `${bPercent}%` }}
-                />
-              </div>
-
-              <div className="mt-2 flex justify-between text-xs text-zinc-500">
-                <span>{selectedDebate.optionA}</span>
-                <span>{selectedDebate.optionB}</span>
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-400">핫 랭킹</h2>
+              <span className="text-xs text-zinc-600">{selectedCategory}</span>
             </div>
 
-            {bestComment && (
-              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/20 to-orange-500/10 p-5">
-                <div className="mb-2 text-sm font-bold text-yellow-300">
-                  👑 현재 토론왕
-                </div>
-                <p className="text-lg font-bold leading-relaxed">
-                  “{bestComment.text}”
-                </p>
-                <div className="mt-3 text-sm text-zinc-300">
-                  by {bestComment.nickname} · 좋아요 {bestComment.likes}
-                </div>
-              </div>
-            )}
+            <div className="grid gap-3 md:grid-cols-2">
+              {rankedArenas.map((arena, index) => {
+                const stats = getArenaStats(arena, initialComments);
+                const preview = getArenaHotComment(arena.id, initialComments);
+                const badge = getArenaBadge(arena, initialComments);
 
-            <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5">
-              <div className="mb-3 text-sm font-bold text-zinc-300">
-                내 주장 남기기
-              </div>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={`${selectedDebate.optionA} vs ${selectedDebate.optionB}... 네 논리를 던져봐`}
-                className="min-h-28 w-full resize-none rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-sm outline-none transition focus:border-orange-500"
-              />
-
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div className="text-sm text-zinc-400">
-                  선택 진영:{" "}
-                  <span className="font-bold text-white">
-                    {selectedSide === "A"
-                      ? selectedDebate.optionA
-                      : selectedDebate.optionB}
-                  </span>
-                </div>
-
-                <button
-                  onClick={addComment}
-                  className="rounded-full bg-orange-500 px-5 py-2 font-bold text-black transition hover:bg-orange-400"
-                >
-                  참전하기
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-zinc-400">
-                  불타는 댓글
-                </h3>
-
-                <div className="flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
-                  <button
-                    onClick={() => setSortType("hot")}
-                    className={`rounded-full px-3 py-1 text-xs ${
-                      sortType === "hot"
-                        ? "bg-orange-500 text-black"
-                        : "text-zinc-400"
-                    }`}
+                return (
+                  <Link
+                    key={arena.id}
+                    href={`/arena/${arena.id}`}
+                    className="border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/40"
                   >
-                    좋아요순
-                  </button>
-                  <button
-                    onClick={() => setSortType("new")}
-                    className={`rounded-full px-3 py-1 text-xs ${
-                      sortType === "new"
-                        ? "bg-orange-500 text-black"
-                        : "text-zinc-400"
-                    }`}
-                  >
-                    최신순
-                  </button>
-                </div>
-              </div>
-
-              {debateComments.map((comment, index) => (
-                <div
-                  key={comment.id}
-                  className={`rounded-2xl border bg-zinc-900 p-4 transition hover:-translate-y-0.5 hover:border-orange-500/50 ${
-                    index === 0 && sortType === "hot"
-                      ? "border-orange-500/50"
-                      : "border-zinc-800"
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {index === 0 && sortType === "hot" && (
-                        <span className="rounded-full bg-yellow-500 px-2 py-1 text-xs font-black text-black">
-                          HOT
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-cyan-300">
+                          #{index + 1}
                         </span>
-                      )}
-
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          comment.side === "A"
-                            ? "bg-red-500/20 text-red-300"
-                            : "bg-blue-500/20 text-blue-300"
-                        }`}
-                      >
-                        {comment.side === "A"
-                          ? selectedDebate.optionA
-                          : selectedDebate.optionB}
-                      </span>
-
-                      <span className="text-sm text-zinc-400">
-                        {comment.nickname}
+                        <span
+                          className={`border px-2 py-1 text-xs font-bold ${statusMeta[arena.status].tone}`}
+                        >
+                          {arena.status === "main"
+                            ? "NOW"
+                            : statusMeta[arena.status].label}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        {Math.round(stats.heatScore)}
                       </span>
                     </div>
-
-                    <button
-                      onClick={() => likeComment(comment.id)}
-                      className="rounded-full border border-zinc-700 px-3 py-1 text-sm transition hover:border-orange-400 hover:text-orange-300"
-                    >
-                      👍 {comment.likes}
-                    </button>
-                  </div>
-
-                  <p className="leading-relaxed text-zinc-100">
-                    {comment.text}
-                  </p>
-                </div>
-              ))}
-
-              {debateComments.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-zinc-700 p-8 text-center text-zinc-500">
-                  아직 댓글이 없어. 첫 논객이 되어봐.
-                </div>
-              )}
+                    <div className="text-base font-black leading-snug text-white">
+                      {arena.title}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="bg-cyan-300 px-2 py-1 text-xs font-black text-black">
+                        {getArenaPulse(arena)}
+                      </span>
+                      <span className="text-xs font-bold text-zinc-500">
+                        {getTrendCopy(arena)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                      <span className="border border-amber-300/30 bg-amber-300/10 px-2 py-1 font-black text-amber-200">
+                        {badge}
+                      </span>
+                      <span className="text-zinc-500">
+                        {stats.aPercent}:{stats.bPercent} · 댓글{" "}
+                        {stats.commentCount}
+                      </span>
+                    </div>
+                    {preview ? (
+                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-zinc-500">
+                        HOT: {preview.text}
+                      </p>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
-          </section>
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
