@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const ADMIN_COOKIE = "vs_arena_admin";
 const ADMIN_SESSION = "staff-session";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin/login") || pathname.startsWith("/admin/session")) {
