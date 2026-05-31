@@ -100,6 +100,33 @@ export default function Home() {
     arena,
     comment: getArenaHotComment(arena.id, initialComments),
   }));
+  const categoryHeat = categories.slice(1).map((category) => {
+    const categoryArenas = arenas.filter((arena) => arena.category === category);
+    const hottest = [...categoryArenas].sort(
+      (a, b) =>
+        getArenaStats(b, initialComments).heatScore -
+        getArenaStats(a, initialComments).heatScore
+    )[0];
+    const heat = categoryArenas.reduce(
+      (sum, arena) => sum + getArenaStats(arena, initialComments).heatScore,
+      0
+    );
+
+    return { category, count: categoryArenas.length, heat, hottest };
+  }).sort((a, b) => b.heat - a.heat);
+  const replyQueue = allRankedArenas
+    .filter((arena) => statusMeta[arena.status].canJoin)
+    .slice(3, 9);
+  const keywordChips = [
+    "논파각",
+    "반박 대기",
+    "밈폭발",
+    "역전각",
+    "전통논쟁",
+    "상상매치",
+    "돈 얘기",
+    "연애탐정",
+  ];
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#08090d] text-zinc-100">
@@ -140,6 +167,22 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        <section className="grid gap-2 border-b border-white/10 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex min-w-0 gap-2 overflow-hidden">
+            {keywordChips.map((keyword) => (
+              <span
+                key={keyword}
+                className="shrink-0 border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-black text-zinc-300"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
+          <div className="border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs font-black text-rose-100">
+            지금 조용하면 지는 판
+          </div>
+        </section>
 
         <section className="border-b border-white/10 py-4 sm:py-5">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
@@ -253,6 +296,41 @@ export default function Home() {
                 </div>
               </section>
 
+              <section className="border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-black text-cyan-100">
+                    카테고리 화력
+                  </h2>
+                  <span className="text-xs font-black text-zinc-500">
+                    {arenas.length}개 판
+                  </span>
+                </div>
+                <div className="grid gap-2">
+                  {categoryHeat.slice(0, 5).map(({ category, count, heat, hottest }) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setSelectedCategory(category)}
+                      className={`border p-3 text-left transition hover:border-cyan-300/60 ${
+                        selectedCategory === category
+                          ? "border-cyan-300 bg-cyan-300 text-black"
+                          : "border-white/10 bg-black/25 text-zinc-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-black">{category}</span>
+                        <span className="text-xs font-black">
+                          {Math.round(heat).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-1 line-clamp-1 text-xs opacity-70">
+                        {count}개 · {hottest.title}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
               <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 {challengerArenas.map((arena) => {
                   const stats = getArenaStats(arena, initialComments);
@@ -304,19 +382,63 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            <div className="hidden border border-white/10 bg-white/[0.035] p-4 lg:block">
+              <div className="text-sm font-black text-white">반박 대기석</div>
+              <div className="mt-3 space-y-2">
+                {replyQueue.slice(0, 5).map((arena) => {
+                  const stats = getArenaStats(arena, initialComments);
+
+                  return (
+                    <Link
+                      key={arena.id}
+                      href={`/arena/${arena.id}`}
+                      className="block border border-white/10 bg-black/25 p-3 transition hover:border-amber-300/40"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-amber-200">
+                          {getArenaPulse(arena)}
+                        </span>
+                        <span className="text-xs text-zinc-600">
+                          {stats.aPercent}:{stats.bPercent}
+                        </span>
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-zinc-300">
+                        {arena.title}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </aside>
 
           <div className="min-w-0 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black text-zinc-300">
-                오늘의 싸움판
-              </h2>
-              <span className="text-xs font-black text-zinc-600">
-                {selectedCategory} · {rankedArenas.length}개
-              </span>
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="flex items-center justify-between border border-white/10 bg-white/[0.035] px-4 py-3">
+                <h2 className="text-sm font-black text-zinc-300">
+                  오늘의 싸움판
+                </h2>
+                <span className="text-xs font-black text-zinc-600">
+                  {selectedCategory} · {rankedArenas.length}개
+                </span>
+              </div>
+              <div className="grid grid-cols-3 border border-white/10 bg-black/25 text-center text-xs font-black">
+                <div className="border-r border-white/10 px-2 py-3 text-rose-200">
+                  A/B 박빙 {rankedArenas.filter((arena) => {
+                    const stats = getArenaStats(arena, initialComments);
+                    return Math.abs(stats.aPercent - stats.bPercent) <= 10;
+                  }).length}
+                </div>
+                <div className="border-r border-white/10 px-2 py-3 text-amber-200">
+                  LIVE {rankedArenas.filter((arena) => statusMeta[arena.status].canJoin).length}
+                </div>
+                <div className="px-2 py-3 text-cyan-200">
+                  댓글 {rankedArenas.reduce((sum, arena) => sum + getArenaStats(arena, initialComments).commentCount, 0)}
+                </div>
+              </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2">
               {visibleRankedArenas.map((arena, index) => {
                 const stats = getArenaStats(arena, initialComments);
                 const preview = getArenaHotComment(arena.id, initialComments);
@@ -326,52 +448,53 @@ export default function Home() {
                   <Link
                     key={arena.id}
                     href={`/arena/${arena.id}`}
-                    className="group min-w-0 border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/40"
+                    className={`group grid min-w-0 gap-3 border border-white/10 bg-white/[0.035] p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/40 md:grid-cols-[76px_minmax(0,1fr)_160px] md:items-center ${
+                      index < 3 ? "border-amber-300/30 bg-amber-300/[0.04]" : ""
+                    }`}
                   >
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-cyan-300">
-                          #{index + 1}
+                    <div className="flex items-center gap-2 md:block">
+                      <div className="text-xl font-black text-cyan-300">
+                        #{index + 1}
+                      </div>
+                      <span
+                        className={`inline-block border px-2 py-1 text-xs font-bold ${statusMeta[arena.status].tone}`}
+                      >
+                        {arena.status === "main"
+                          ? "NOW"
+                          : statusMeta[arena.status].label}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-base font-black leading-snug text-white group-hover:text-cyan-100">
+                        {arena.title}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="bg-cyan-300 px-2 py-1 text-xs font-black text-black">
+                          {getArenaPulse(arena)}
                         </span>
-                        <span
-                          className={`border px-2 py-1 text-xs font-bold ${statusMeta[arena.status].tone}`}
-                        >
-                          {arena.status === "main"
-                            ? "NOW"
-                            : statusMeta[arena.status].label}
+                        <span className="text-xs font-bold text-zinc-500">
+                          {getTrendCopy(arena)}
                         </span>
                       </div>
-                      <span className="text-xs text-zinc-500">
+                      {preview ? (
+                        <p className="mt-2 line-clamp-1 text-sm leading-relaxed text-zinc-500">
+                          HOT: {preview.text}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 text-center text-xs font-black md:block md:text-right">
+                      <div className="border border-white/10 bg-black/25 px-2 py-2 text-amber-200 md:border-0 md:bg-transparent md:p-0">
                         {Math.round(stats.heatScore)}
-                      </span>
-                    </div>
-                    <div className="text-base font-black leading-snug text-white group-hover:text-cyan-100">
-                      {arena.title}
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="bg-cyan-300 px-2 py-1 text-xs font-black text-black">
-                        {getArenaPulse(arena)}
-                      </span>
-                      <span className="text-xs font-bold text-zinc-500">
-                        {getTrendCopy(arena)}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="border border-amber-300/30 bg-amber-300/10 px-2 py-1 font-black text-amber-200">
-                        {badge}
-                      </span>
-                      <span className="text-zinc-500">
-                        {stats.aPercent}:{stats.bPercent} · 댓글{" "}
-                        {stats.commentCount}
-                      </span>
-                    </div>
-                    {preview ? (
-                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-zinc-500">
-                        HOT: {preview.text}
-                      </p>
-                    ) : null}
-                    <div className="mt-3 text-xs font-black text-zinc-600 group-hover:text-amber-200">
-                      들어가서 한 줄 박기
+                      </div>
+                      <div className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-500 md:mt-1 md:border-0 md:bg-transparent md:p-0">
+                        {stats.aPercent}:{stats.bPercent}
+                      </div>
+                      <div className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-500 md:mt-1 md:border-0 md:bg-transparent md:p-0">
+                        댓글 {stats.commentCount}
+                      </div>
+                      <div className="col-span-3 mt-2 hidden text-xs font-black text-zinc-600 group-hover:text-amber-200 md:block">
+                        {badge} · 입장
+                      </div>
                     </div>
                   </Link>
                 );
