@@ -34,12 +34,20 @@ export default function AdminPage() {
       <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
-            <Link
-              href="/"
-              className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300 sm:text-xs sm:tracking-[0.24em]"
-            >
-              VS ARENA Lobby
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/"
+                className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300 sm:text-xs sm:tracking-[0.24em]"
+              >
+                VS ARENA Lobby
+              </Link>
+              <Link
+                href="/admin/logout"
+                className="border border-white/10 px-2 py-1 text-xs font-black text-zinc-500 transition hover:border-rose-300 hover:text-rose-200"
+              >
+                로그아웃
+              </Link>
+            </div>
             <h1 className="mt-3 text-4xl font-black text-white sm:text-6xl">
               운영 콘솔
             </h1>

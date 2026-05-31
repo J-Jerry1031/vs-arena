@@ -98,31 +98,25 @@ export default async function Home({ searchParams }: HomeProps) {
 
           <div className="space-y-2 md:min-w-[420px]">
             <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-base font-black text-white sm:text-lg">
-                {totalSpectators.toLocaleString()}
+              <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+                <div className="text-base font-black text-white sm:text-lg">
+                  {totalSpectators.toLocaleString()}
+                </div>
+                <div className="text-xs text-zinc-500">실시간 관전</div>
               </div>
-              <div className="text-xs text-zinc-500">실시간 관전</div>
-            </div>
-            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-base font-black text-white sm:text-lg">
-                {liveArenas.length}
+              <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+                <div className="text-base font-black text-white sm:text-lg">
+                  {liveArenas.length}
+                </div>
+                <div className="text-xs text-zinc-500">열린 경기</div>
               </div>
-              <div className="text-xs text-zinc-500">열린 경기</div>
-            </div>
-            <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-base font-black text-amber-300 sm:text-lg">
-                {initialComments.length}
+              <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
+                <div className="text-base font-black text-amber-300 sm:text-lg">
+                  {initialComments.length}
+                </div>
+                <div className="text-xs text-zinc-500">샘플 댓글</div>
               </div>
-              <div className="text-xs text-zinc-500">샘플 댓글</div>
             </div>
-            </div>
-            <Link
-              href="/admin"
-              className="block border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-zinc-300 transition hover:border-amber-300/60 hover:text-amber-200 md:hidden"
-            >
-              운영 콘솔
-            </Link>
           </div>
         </header>
 
@@ -216,12 +210,6 @@ export default async function Home({ searchParams }: HomeProps) {
 
         <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="min-w-0 space-y-4">
-            <Link
-              href="/admin"
-              className="hidden border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-300 hover:text-black lg:block"
-            >
-              운영 콘솔 열기
-            </Link>
             <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
               {categories.map((item) => (
                 <Link
