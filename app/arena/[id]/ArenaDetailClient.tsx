@@ -316,10 +316,10 @@ export default function ArenaDetailClient({
   };
 
   return (
-    <div className="space-y-5">
-      <section className="border border-amber-300/30 bg-white/[0.04] p-5 shadow-2xl shadow-cyan-950/20 sm:p-6">
+    <div className="min-w-0 space-y-5">
+      <section className="min-w-0 border border-amber-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-cyan-950/20 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-cyan-300">
                 #{arena.category}
@@ -335,7 +335,7 @@ export default function ArenaDetailClient({
                 {badge}
               </span>
             </div>
-            <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-5xl">
+            <h1 className="mt-3 break-keep text-2xl font-black leading-tight text-white sm:text-5xl">
               {arena.title}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400">
@@ -343,21 +343,21 @@ export default function ArenaDetailClient({
             </p>
           </div>
 
-          <div className="grid min-w-64 grid-cols-3 border border-white/10 bg-black/25 text-center">
+          <div className="grid w-full grid-cols-3 border border-white/10 bg-black/25 text-center lg:min-w-64 lg:max-w-sm">
             <div className="border-r border-white/10 px-3 py-3">
-              <div className="text-lg font-black text-white">
+              <div className="text-base font-black text-white sm:text-lg">
                 {stats.commentCount}
               </div>
               <div className="text-xs text-zinc-500">댓글</div>
             </div>
             <div className="border-r border-white/10 px-3 py-3">
-              <div className="text-lg font-black text-amber-300">
+              <div className="text-base font-black text-amber-300 sm:text-lg">
                 {arenaHeat}
               </div>
               <div className="text-xs text-zinc-500">열기</div>
             </div>
             <div className="px-3 py-3">
-              <div className="text-lg font-black text-white">
+              <div className="text-base font-black text-white sm:text-lg">
                 {stats.aPercent}:{stats.bPercent}
               </div>
               <div className="text-xs text-zinc-500">여론</div>
@@ -369,14 +369,14 @@ export default function ArenaDetailClient({
           <button
             onClick={() => setSelectedSide("A")}
             disabled={!canJoinArena}
-            className={`border p-5 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
               selectedSide === "A"
                 ? "border-rose-300 bg-rose-400/15"
                 : "border-white/10 bg-black/30 hover:border-rose-300/60"
             }`}
           >
             <div className="text-xs font-bold text-rose-200">A 진영</div>
-            <div className="mt-1 text-3xl font-black text-white">
+            <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
               {arena.optionA}
             </div>
             <div className="mt-3 text-sm text-zinc-400">
@@ -387,14 +387,14 @@ export default function ArenaDetailClient({
           <button
             onClick={() => setSelectedSide("B")}
             disabled={!canJoinArena}
-            className={`border p-5 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
               selectedSide === "B"
                 ? "border-sky-300 bg-sky-400/15"
                 : "border-white/10 bg-black/30 hover:border-sky-300/60"
             }`}
           >
             <div className="text-xs font-bold text-sky-200">B 진영</div>
-            <div className="mt-1 text-3xl font-black text-white">
+            <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
               {arena.optionB}
             </div>
             <div className="mt-3 text-sm text-zinc-400">
@@ -416,11 +416,11 @@ export default function ArenaDetailClient({
       </section>
 
       {hotComment ? (
-        <section className="border border-amber-300/40 bg-amber-300/10 p-5">
+        <section className="border border-amber-300/40 bg-amber-300/10 p-4 sm:p-5">
           <div className="text-sm font-black text-amber-200">
             현재 경기 하이라이트
           </div>
-          <p className="mt-3 text-xl font-black leading-relaxed text-white">
+          <p className="mt-3 text-lg font-black leading-relaxed text-white sm:text-xl">
             &ldquo;{hotComment.text}&rdquo;
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-zinc-400">
@@ -430,7 +430,7 @@ export default function ArenaDetailClient({
             <button
               onClick={() => setSelectedSide(hotComment.side === "A" ? "B" : "A")}
               disabled={!canJoinArena}
-              className="ml-auto border border-white/10 px-3 py-1.5 text-xs font-black text-zinc-300 transition hover:border-cyan-300 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full border border-white/10 px-3 py-2 text-xs font-black text-zinc-300 transition hover:border-cyan-300 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:w-auto sm:py-1.5"
             >
               이 댓글에 반박하기
             </button>
@@ -438,9 +438,9 @@ export default function ArenaDetailClient({
         </section>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <div className="border border-white/10 bg-white/[0.04] p-5">
+      <section className="grid min-w-0 gap-5 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-4">
+          <div className="border border-white/10 bg-white/[0.04] p-4 sm:p-5">
             <h2 className="text-sm font-black text-zinc-300">
               {canJoinArena ? "참전하기" : "관전석"}
             </h2>
@@ -458,7 +458,7 @@ export default function ArenaDetailClient({
               maxLength={16}
               aria-label="닉네임"
             />
-            <div className="mt-3 flex items-center border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-400">
+            <div className="mt-3 flex flex-wrap items-center border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-400">
               선택 진영:
               <strong className="ml-2 text-white">
                 {selectedSide === "A" ? arena.optionA : arena.optionB}
@@ -512,7 +512,7 @@ export default function ArenaDetailClient({
                   : "링 위에 올리기"
                 : "구경 중"}
             </button>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-zinc-500">
+            <div className="mt-4 grid gap-2 text-xs font-bold text-zinc-500 sm:grid-cols-2">
               <div className="border border-white/10 bg-black/25 p-3">
                 같은 댓글 반복 컷
               </div>
@@ -524,7 +524,7 @@ export default function ArenaDetailClient({
 
         </aside>
 
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-sm font-bold text-zinc-400">
@@ -551,7 +551,7 @@ export default function ArenaDetailClient({
             </div>
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="grid min-w-0 gap-3 xl:grid-cols-2">
             <div className="space-y-3 border border-rose-300/20 bg-rose-400/[0.03] p-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-black text-rose-200">

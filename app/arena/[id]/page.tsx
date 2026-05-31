@@ -18,16 +18,16 @@ export default async function ArenaPage({ params }: ArenaPageProps) {
   if (!arena) notFound();
 
   return (
-    <main className="min-h-screen bg-[#08090d] text-zinc-100">
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen overflow-x-hidden bg-[#08090d] text-zinc-100">
+      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
         <header className="mb-5 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/"
-            className="border border-white/10 px-3 py-2 text-sm font-black text-zinc-300 transition hover:border-cyan-300 hover:text-cyan-200"
+            className="w-fit border border-white/10 px-3 py-2 text-sm font-black text-zinc-300 transition hover:border-cyan-300 hover:text-cyan-200"
           >
             ← 로비로
           </Link>
-          <div className="text-xs font-black uppercase tracking-[0.32em] text-cyan-300">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300 sm:text-xs sm:tracking-[0.32em]">
             VS ARENA / Battle Room
           </div>
         </header>

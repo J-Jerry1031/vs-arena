@@ -80,11 +80,11 @@ export default async function Home({ searchParams }: HomeProps) {
   const visibleTopArenas = topArenas.length > 0 ? topArenas : fallbackTopArenas;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#08090d] text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen overflow-x-hidden bg-[#08090d] text-zinc-100">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-300">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300 sm:text-xs sm:tracking-[0.32em]">
               Editorial Battle Arena
             </p>
             <h1 className="mt-2 text-4xl font-black tracking-normal text-white sm:text-6xl">
@@ -96,28 +96,30 @@ export default async function Home({ searchParams }: HomeProps) {
             </p>
           </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[420px]">
+          <div className="space-y-2 md:min-w-[420px]">
+            <div className="grid grid-cols-3 gap-2 text-center">
             <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-lg font-black text-white">
+              <div className="text-base font-black text-white sm:text-lg">
                 {totalSpectators.toLocaleString()}
               </div>
               <div className="text-xs text-zinc-500">실시간 관전</div>
             </div>
             <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-lg font-black text-white">
+              <div className="text-base font-black text-white sm:text-lg">
                 {liveArenas.length}
               </div>
               <div className="text-xs text-zinc-500">열린 경기</div>
             </div>
             <div className="border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="text-lg font-black text-amber-300">
+              <div className="text-base font-black text-amber-300 sm:text-lg">
                 {initialComments.length}
               </div>
               <div className="text-xs text-zinc-500">샘플 댓글</div>
             </div>
+            </div>
             <Link
               href="/admin"
-              className="border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-zinc-300 transition hover:border-amber-300/60 hover:text-amber-200 md:hidden"
+              className="block border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-zinc-300 transition hover:border-amber-300/60 hover:text-amber-200 md:hidden"
             >
               운영 콘솔
             </Link>
@@ -125,8 +127,8 @@ export default async function Home({ searchParams }: HomeProps) {
         </header>
 
         <section className="border-b border-white/10 py-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h2 className="text-sm font-black text-white">
                 지금 불타는 아레나 TOP 3
               </h2>
@@ -134,7 +136,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 한 줄 HOT만 보고 바로 링 입장. 긴 댓글은 상세에서 펼쳐짐.
               </p>
             </div>
-            <span className="border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-200">
+            <span className="w-fit border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-200">
               LIVE HEAT
             </span>
           </div>
@@ -149,7 +151,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <Link
                   key={arena.id}
                   href={`/arena/${arena.id}`}
-                  className={`border p-4 text-left transition hover:-translate-y-0.5 ${
+                  className={`min-w-0 border p-4 text-left transition hover:-translate-y-0.5 ${
                     index === 0
                       ? "border-amber-300/50 bg-amber-300/10"
                       : "border-white/10 bg-white/[0.04] hover:border-cyan-300/40"
@@ -190,7 +192,7 @@ export default async function Home({ searchParams }: HomeProps) {
                       style={{ width: `${stats.bPercent}%` }}
                     />
                   </div>
-                  <div className="mt-2 flex justify-between text-xs text-zinc-500">
+                  <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
                     <span>{stats.aPercent}%</span>
                     <span>
                       댓글 {stats.commentCount} · 점수{" "}
@@ -213,7 +215,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </section>
 
         <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="space-y-4">
+          <aside className="min-w-0 space-y-4">
             <Link
               href="/admin"
               className="hidden border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-300 hover:text-black lg:block"
@@ -237,7 +239,7 @@ export default async function Home({ searchParams }: HomeProps) {
             </div>
           </aside>
 
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-zinc-400">핫 랭킹</h2>
               <span className="text-xs text-zinc-600">{selectedCategory}</span>
@@ -253,7 +255,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   <Link
                     key={arena.id}
                     href={`/arena/${arena.id}`}
-                    className="border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/40"
+                    className="min-w-0 border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/40"
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -283,7 +285,7 @@ export default async function Home({ searchParams }: HomeProps) {
                         {getTrendCopy(arena)}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                       <span className="border border-amber-300/30 bg-amber-300/10 px-2 py-1 font-black text-amber-200">
                         {badge}
                       </span>
