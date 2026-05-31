@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ADMIN_COOKIE = "vs_arena_admin";
+const ADMIN_SESSION = "staff-session";
 
 type AdminLoginPageProps = {
   searchParams?: Promise<{ error?: string; next?: string }>;
@@ -22,7 +23,7 @@ async function loginAdmin(formData: FormData) {
 
   const cookieStore = await cookies();
 
-  cookieStore.set(ADMIN_COOKIE, code, {
+  cookieStore.set(ADMIN_COOKIE, ADMIN_SESSION, {
     httpOnly: true,
     maxAge: 60 * 60 * 8,
     path: "/",

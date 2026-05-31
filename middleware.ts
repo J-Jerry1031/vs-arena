@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_COOKIE = "vs_arena_admin";
-
-const getAdminCode = () => process.env.ADMIN_ACCESS_CODE ?? "vs-arena-admin";
+const ADMIN_SESSION = "staff-session";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +12,7 @@ export function middleware(request: NextRequest) {
 
   const adminCookie = request.cookies.get(ADMIN_COOKIE)?.value;
 
-  if (adminCookie === getAdminCode()) {
+  if (adminCookie === ADMIN_SESSION) {
     return NextResponse.next();
   }
 
