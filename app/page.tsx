@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import {
   type Arena,
   arenas,
@@ -8,10 +11,6 @@ import {
   initialComments,
   statusMeta,
 } from "@/lib/arena-data";
-
-type HomeProps = {
-  searchParams?: Promise<{ category?: string }>;
-};
 
 const getArenaPulse = (arena: Arena) => {
   const stats = getArenaStats(arena, initialComments);
@@ -49,8 +48,8 @@ const getTrendCopy = (arena: Arena) => {
   return `${leadingSide} 우세, ${trailingSide} 반격 대기`;
 };
 
-export default async function Home({ searchParams }: HomeProps) {
-  const selectedCategory = (await searchParams)?.category ?? "전체";
+export default function Home() {
+  const [selectedCategory, setSelectedCategory] = useState("전체");
   const liveArenas = arenas.filter((arena) => statusMeta[arena.status].canJoin);
   const totalSpectators = liveArenas.reduce(
     (sum, arena) => sum + arena.spectators,
@@ -209,12 +208,14 @@ export default async function Home({ searchParams }: HomeProps) {
         </section>
 
         <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="min-w-0 space-y-4">
+          <aside className="sticky top-0 z-20 -mx-3 min-w-0 space-y-4 bg-[#08090d]/95 px-3 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
               {categories.map((item) => (
-                <Link
+                <button
                   key={item}
-                  href={item === "전체" ? "/" : `/?category=${encodeURIComponent(item)}`}
+                  type="button"
+                  onClick={() => setSelectedCategory(item)}
+                  aria-pressed={selectedCategory === item}
                   className={`shrink-0 border px-3 py-2 text-sm font-bold transition ${
                     selectedCategory === item
                       ? "border-cyan-300 bg-cyan-300 text-black"
@@ -222,7 +223,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   }`}
                 >
                   {item}
-                </Link>
+                </button>
               ))}
             </div>
           </aside>
