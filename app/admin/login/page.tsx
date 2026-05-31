@@ -1,38 +1,6 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
-const ADMIN_COOKIE = "vs_arena_admin";
-const ADMIN_SESSION = "staff-session";
-
 type AdminLoginPageProps = {
   searchParams?: Promise<{ error?: string; next?: string }>;
 };
-
-const getAdminCode = () => process.env.ADMIN_ACCESS_CODE ?? "vs-arena-admin";
-
-async function loginAdmin(formData: FormData) {
-  "use server";
-
-  const code = String(formData.get("code") ?? "").trim();
-  const nextPath = String(formData.get("next") ?? "/admin");
-  const safeNextPath = nextPath.startsWith("/admin") ? nextPath : "/admin";
-
-  if (code !== getAdminCode()) {
-    redirect(`/admin/login?error=1&next=${encodeURIComponent(safeNextPath)}`);
-  }
-
-  const cookieStore = await cookies();
-
-  cookieStore.set(ADMIN_COOKIE, ADMIN_SESSION, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 8,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-
-  redirect(safeNextPath);
-}
 
 export default async function AdminLoginPage({
   searchParams,
@@ -53,7 +21,7 @@ export default async function AdminLoginPage({
           들어간다.
         </p>
 
-        <form action={loginAdmin} className="mt-6 space-y-3">
+        <form action="/admin/session" method="post" className="mt-6 space-y-3">
           <input type="hidden" name="next" value={nextPath} />
           <label className="block">
             <span className="text-xs font-black text-zinc-400">운영자 코드</span>

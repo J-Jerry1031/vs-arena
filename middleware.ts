@@ -6,7 +6,7 @@ const ADMIN_SESSION = "staff-session";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/admin/login")) {
+  if (pathname.startsWith("/admin/login") || pathname.startsWith("/admin/session")) {
     return NextResponse.next();
   }
 
