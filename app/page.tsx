@@ -61,6 +61,24 @@ const getArenaShout = (arena: Arena) => {
   return `${winningOption} 쪽이 밀어붙이는 중. ${losingOption} 반박 없으면 그대로 묻힘`;
 };
 
+const getVoteGap = (arena: Arena) => {
+  const stats = getArenaStats(arena, initialComments);
+
+  return Math.abs(stats.aPercent - stats.bPercent);
+};
+
+const getClickReason = (arena: Arena) => {
+  const stats = getArenaStats(arena, initialComments);
+  const gap = getVoteGap(arena);
+
+  if (gap <= 2) return `${stats.aPercent}:${stats.bPercent} 초박빙 · 한 표가 판 뒤집음`;
+  if (gap <= 8) return `${stats.aPercent}:${stats.bPercent} 박빙 · 아직 싸움 안 끝남`;
+  if (stats.commentCount >= 2) return `댓글 ${stats.commentCount}개 · 아직도 말싸움 중`;
+  if (stats.heatScore > 650) return `${Math.round(stats.heatScore)}점 화력 · 민심 폭발`;
+
+  return `${arena.spectators.toLocaleString()}명 관전 · 누가 맞는지 보러가기`;
+};
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const liveArenas = arenas.filter((arena) => statusMeta[arena.status].canJoin);
@@ -117,6 +135,46 @@ export default function Home() {
   const replyQueue = allRankedArenas
     .filter((arena) => statusMeta[arena.status].canJoin)
     .slice(3, 9);
+  const closeArenas = [...arenas]
+    .filter((arena) => statusMeta[arena.status].canJoin)
+    .sort((a, b) => getVoteGap(a) - getVoteGap(b))
+    .slice(0, 4);
+  const commentHeavyArenas = [...arenas]
+    .sort(
+      (a, b) =>
+        getArenaStats(b, initialComments).commentCount -
+        getArenaStats(a, initialComments).commentCount
+    )
+    .slice(0, 4);
+  const latestArenas = [...arenas]
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .slice(0, 4);
+  const battleSections = [
+    {
+      title: "오늘의 뜨거운 VS",
+      label: "지금 불타는 VS",
+      tone: "border-rose-300/30 bg-rose-400/10 text-rose-100",
+      arenas: allRankedArenas.slice(0, 4),
+    },
+    {
+      title: "박빙 승부",
+      label: "한 표 차이 감성",
+      tone: "border-cyan-300/30 bg-cyan-400/10 text-cyan-100",
+      arenas: closeArenas,
+    },
+    {
+      title: "댓글 많은 VS",
+      label: "댓글 전쟁",
+      tone: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+      arenas: commentHeavyArenas,
+    },
+    {
+      title: "최신 VS",
+      label: "새 판 오픈",
+      tone: "border-violet-300/30 bg-violet-400/10 text-violet-100",
+      arenas: latestArenas,
+    },
+  ];
   const keywordChips = [
     "논파각",
     "반박 대기",
@@ -360,6 +418,91 @@ export default function Home() {
                 })}
               </section>
             </div>
+          </div>
+        </section>
+
+        <section className="border-b border-white/10 py-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-white">
+                지금 눌러야 하는 판
+              </h2>
+              <p className="mt-1 text-xs font-bold text-zinc-600">
+                민심, 댓글, 박빙, 신규판을 한 번에 훑고 바로 참전.
+              </p>
+            </div>
+            <span className="border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-100">
+              들어오자마자 내 편 고르기
+            </span>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-2">
+            {battleSections.map((section) => (
+              <section
+                key={section.title}
+                className="min-w-0 border border-white/10 bg-white/[0.025] p-3"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-black text-white">{section.title}</h3>
+                  <span className={`border px-2 py-1 text-[11px] font-black ${section.tone}`}>
+                    {section.label}
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {section.arenas.map((arena) => {
+                    const stats = getArenaStats(arena, initialComments);
+
+                    return (
+                      <Link
+                        key={`${section.title}-${arena.id}`}
+                        href={`/arena/${arena.id}`}
+                        className="group min-w-0 border border-white/10 bg-black/25 p-3 transition hover:border-cyan-300/50"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-black text-zinc-300">
+                            {getArenaBadge(arena, initialComments)}
+                          </span>
+                          <span className="text-[11px] font-black text-zinc-600">
+                            댓글 {stats.commentCount}
+                          </span>
+                        </div>
+                        <div className="mt-2 line-clamp-2 min-h-11 text-sm font-black leading-snug text-zinc-100 group-hover:text-cyan-100">
+                          {arena.title}
+                        </div>
+                        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center text-xs font-black">
+                          <span className="truncate bg-rose-400/15 px-2 py-2 text-rose-100">
+                            {arena.optionA}
+                          </span>
+                          <span className="text-zinc-500">VS</span>
+                          <span className="truncate bg-sky-400/15 px-2 py-2 text-sky-100">
+                            {arena.optionB}
+                          </span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden bg-white/10">
+                          <div
+                            className="inline-block h-full bg-rose-400"
+                            style={{ width: `${stats.aPercent}%` }}
+                          />
+                          <div
+                            className="inline-block h-full bg-sky-400"
+                            style={{ width: `${stats.bPercent}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-black">
+                          <span className="text-zinc-500">
+                            {stats.aPercent}:{stats.bPercent} · {arena.spectators.toLocaleString()}명
+                          </span>
+                          <span className="text-amber-200">민심 확인하기</span>
+                        </div>
+                        <p className="mt-2 line-clamp-1 text-xs font-bold text-zinc-500">
+                          {getClickReason(arena)}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </section>
 

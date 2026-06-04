@@ -9,6 +9,7 @@ import type {
   SortType,
 } from "@/lib/arena-data";
 import {
+  arenas,
   emptyReactions,
   getArenaBadge,
   getArenaHotComment,
@@ -26,10 +27,13 @@ type ArenaDetailClientProps = {
   initialComments: ArenaComment[];
 };
 
-const sortLabels: Record<SortType, string> = {
-  hot: "핫한순",
-  new: "최신순",
-  best: "베스트순",
+type CommentTab = "new" | "popular" | "A" | "B";
+
+const commentTabLabels: Record<CommentTab, string> = {
+  new: "최신 댓글",
+  popular: "인기 댓글",
+  A: "A진영 댓글",
+  B: "B진영 댓글",
 };
 
 const COMMENT_COOLDOWN_MS = 10_000;
@@ -40,6 +44,7 @@ export default function ArenaDetailClient({
 }: ArenaDetailClientProps) {
   const [comments, setComments] = useState<ArenaComment[]>(initialComments);
   const [sortType, setSortType] = useState<SortType>("hot");
+  const [commentTab, setCommentTab] = useState<CommentTab>("new");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
   const [nickname, setNickname] = useState("익명의 논객");
   const [draft, setDraft] = useState("");
@@ -102,6 +107,17 @@ export default function ArenaDetailClient({
 
   const sideAComments = sortedComments.filter((comment) => comment.side === "A");
   const sideBComments = sortedComments.filter((comment) => comment.side === "B");
+  const visibleComments =
+    commentTab === "A"
+      ? sideAComments
+      : commentTab === "B"
+        ? sideBComments
+        : commentTab === "popular"
+          ? [...arenaComments].sort((a, b) => b.likes - a.likes)
+          : [...arenaComments].sort((a, b) => b.createdAt - a.createdAt);
+  const relatedArenas = arenas
+    .filter((item) => item.id !== arena.id && item.category === arena.category)
+    .slice(0, 3);
 
   const addComment = () => {
     const text = draft.trim();
@@ -221,6 +237,13 @@ export default function ArenaDetailClient({
     const topReaction = getTopReaction(comment);
     const score = getCommentScore(comment);
     const isExpanded = expandedIds.has(comment.id);
+    const dislikes = Math.max(0, Math.floor((getReactionTotal(comment) - comment.likes / 3) / 2));
+    const replies = Math.max(0, Math.floor((comment.likes + getReactionTotal(comment)) / 18));
+    const isPopular = comment.likes >= 70 || index === 0;
+    const timeLabel =
+      comment.createdAt > 1_000_000_000_000
+        ? "방금 전"
+        : `${Math.max(1, 45 - comment.createdAt)}분 전`;
 
     return (
       <article
@@ -237,9 +260,9 @@ export default function ArenaDetailClient({
             className="min-w-0 text-left"
           >
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              {index === 0 && sortType !== "new" ? (
+              {isPopular ? (
                 <span className="bg-amber-300 px-2 py-1 text-xs font-black text-black">
-                  HOT
+                  인기댓글
                 </span>
               ) : null}
               {topReaction ? (
@@ -259,14 +282,17 @@ export default function ArenaDetailClient({
               <span className="text-sm font-bold text-zinc-300">
                 {comment.nickname}
               </span>
+              <span className="text-xs font-bold text-zinc-600">{timeLabel}</span>
             </div>
 
             <p className="line-clamp-2 leading-relaxed text-zinc-100">
               {comment.text}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-600">
+              <span>좋아요 {comment.likes}</span>
+              <span>싫어요 {dislikes}</span>
+              <span>답글 {replies}</span>
               <span>점수 {score}</span>
-              <span>반응 {getReactionTotal(comment)}</span>
               <span>{isExpanded ? "접기" : "펼쳐서 투표"}</span>
             </div>
           </button>
@@ -275,7 +301,7 @@ export default function ArenaDetailClient({
             onClick={() => likeComment(comment.id)}
             className="border border-white/10 px-3 py-2 text-sm font-bold text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
           >
-            추천 {comment.likes}
+            좋아요 {comment.likes}
           </button>
         </div>
 
@@ -316,8 +342,11 @@ export default function ArenaDetailClient({
   };
 
   return (
-    <div className="min-w-0 space-y-5">
-      <section className="min-w-0 border border-amber-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-cyan-950/20 sm:p-6">
+    <div className="min-w-0 space-y-5 pb-20 lg:pb-0">
+      <section
+        id="vote-zone"
+        className="min-w-0 border border-amber-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-cyan-950/20 sm:p-6"
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -348,59 +377,73 @@ export default function ArenaDetailClient({
               <div className="text-base font-black text-white sm:text-lg">
                 {stats.commentCount}
               </div>
-              <div className="text-xs text-zinc-500">댓글</div>
+              <div className="text-xs text-zinc-500">댓글 전쟁</div>
             </div>
             <div className="border-r border-white/10 px-3 py-3">
               <div className="text-base font-black text-amber-300 sm:text-lg">
                 {arenaHeat}
               </div>
-              <div className="text-xs text-zinc-500">열기</div>
+              <div className="text-xs text-zinc-500">참여 열기</div>
             </div>
             <div className="px-3 py-3">
               <div className="text-base font-black text-white sm:text-lg">
                 {stats.aPercent}:{stats.bPercent}
               </div>
-              <div className="text-xs text-zinc-500">여론</div>
+              <div className="text-xs text-zinc-500">민심</div>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button
-            onClick={() => setSelectedSide("A")}
-            disabled={!canJoinArena}
-            className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
-              selectedSide === "A"
-                ? "border-rose-300 bg-rose-400/15"
-                : "border-white/10 bg-black/30 hover:border-rose-300/60"
-            }`}
-          >
-            <div className="text-xs font-bold text-rose-200">A 진영</div>
-            <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
-              {arena.optionA}
-            </div>
-            <div className="mt-3 text-sm text-zinc-400">
-              {stats.aPercent}% 지지
-            </div>
-          </button>
+        <div className="mt-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-black text-white">내 편 고르기</h2>
+            <span className="text-xs font-black text-amber-200">
+              고르면 바로 민심 보임
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setSelectedSide("A")}
+              disabled={!canJoinArena}
+              className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
+                selectedSide === "A"
+                  ? "border-rose-300 bg-rose-400/15"
+                  : "border-white/10 bg-black/30 hover:border-rose-300/60"
+              }`}
+            >
+              <div className="text-xs font-bold text-rose-200">A 진영</div>
+              <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
+                {arena.optionA}
+              </div>
+              <div className="mt-3 text-sm text-zinc-400">
+                {stats.aPercent}% 지지
+              </div>
+              <div className="mt-4 bg-rose-300 px-4 py-3 text-center text-sm font-black text-black">
+                {arena.optionA} 편 들기
+              </div>
+            </button>
 
-          <button
-            onClick={() => setSelectedSide("B")}
-            disabled={!canJoinArena}
-            className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
-              selectedSide === "B"
-                ? "border-sky-300 bg-sky-400/15"
-                : "border-white/10 bg-black/30 hover:border-sky-300/60"
-            }`}
-          >
-            <div className="text-xs font-bold text-sky-200">B 진영</div>
-            <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
-              {arena.optionB}
-            </div>
-            <div className="mt-3 text-sm text-zinc-400">
-              {stats.bPercent}% 지지
-            </div>
-          </button>
+            <button
+              onClick={() => setSelectedSide("B")}
+              disabled={!canJoinArena}
+              className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
+                selectedSide === "B"
+                  ? "border-sky-300 bg-sky-400/15"
+                  : "border-white/10 bg-black/30 hover:border-sky-300/60"
+              }`}
+            >
+              <div className="text-xs font-bold text-sky-200">B 진영</div>
+              <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
+                {arena.optionB}
+              </div>
+              <div className="mt-3 text-sm text-zinc-400">
+                {stats.bPercent}% 지지
+              </div>
+              <div className="mt-4 bg-sky-300 px-4 py-3 text-center text-sm font-black text-black">
+                {arena.optionB} 편 들기
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="mt-5 h-3 overflow-hidden bg-white/10">
@@ -412,6 +455,10 @@ export default function ArenaDetailClient({
             className="inline-block h-full bg-sky-400 transition-all"
             style={{ width: `${stats.bPercent}%` }}
           />
+        </div>
+        <div className="mt-2 flex justify-between text-xs font-black text-zinc-500">
+          <span>{arena.optionA} {stats.aPercent}%</span>
+          <span>{arena.optionB} {stats.bPercent}%</span>
         </div>
       </section>
 
@@ -440,13 +487,13 @@ export default function ArenaDetailClient({
 
       <section className="grid min-w-0 gap-5 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="min-w-0 space-y-4">
-          <div className="border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+          <div id="comment-write" className="border border-white/10 bg-white/[0.04] p-4 sm:p-5">
             <h2 className="text-sm font-black text-zinc-300">
-              {canJoinArena ? "참전하기" : "관전석"}
+              {canJoinArena ? "댓글 전쟁 참여" : "관전석"}
             </h2>
             <p className="mt-1 text-xs text-zinc-500">
               {canJoinArena
-                ? "장문도 가능. 목록에는 두 줄만 보이고, 필요한 댓글만 펼쳐서 투표."
+                ? "먼저 편 고르고, 왜 그쪽인지 한 방 먹이면 됨."
                 : "예정 또는 종료된 경기는 댓글 작성이 잠겨 있음."}
             </p>
 
@@ -459,10 +506,28 @@ export default function ArenaDetailClient({
               aria-label="닉네임"
             />
             <div className="mt-3 flex flex-wrap items-center border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-400">
-              선택 진영:
+              1. 나는 어느 편인가:
               <strong className="ml-2 text-white">
                 {selectedSide === "A" ? arena.optionA : arena.optionB}
               </strong>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(["A", "B"] as Side[]).map((side) => (
+                <button
+                  key={side}
+                  onClick={() => setSelectedSide(side)}
+                  disabled={!canJoinArena}
+                  className={`border px-3 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    selectedSide === side
+                      ? side === "A"
+                        ? "border-rose-300 bg-rose-300 text-black"
+                        : "border-sky-300 bg-sky-300 text-black"
+                      : "border-white/10 bg-black/30 text-zinc-400 hover:border-white/30"
+                  }`}
+                >
+                  {side === "A" ? arena.optionA : arena.optionB}
+                </button>
+              ))}
             </div>
             <div
               className={`sticky top-3 z-10 mt-3 border px-4 py-3 text-sm font-black ${
@@ -482,7 +547,7 @@ export default function ArenaDetailClient({
               disabled={!canJoinArena}
               placeholder={
                 canJoinArena
-                  ? "짧게 꽂아도 되고, 길게 논파해도 됨. 일단 링 위로."
+                  ? "왜 이쪽이 맞는지 한 방 먹여주세요."
                   : "이 경기는 지금 관전만 가능함."
               }
               className="mt-3 min-h-44 w-full resize-none border border-white/10 bg-black/40 p-4 text-sm leading-relaxed text-white outline-none transition placeholder:text-zinc-600 focus:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
@@ -509,7 +574,7 @@ export default function ArenaDetailClient({
               {canJoinArena
                 ? cooldownLeftMs > 0
                   ? "쿨다운 중"
-                  : "링 위에 올리기"
+                  : "한마디 던지기"
                 : "구경 중"}
             </button>
             <div className="mt-4 grid gap-2 text-xs font-bold text-zinc-500 sm:grid-cols-2">
@@ -524,64 +589,95 @@ export default function ArenaDetailClient({
 
         </aside>
 
-        <section className="min-w-0 space-y-3">
+        <section id="comment-zone" className="min-w-0 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-sm font-bold text-zinc-400">
-                진영별 댓글 배틀
+              <h2 className="text-lg font-black text-white">
+                피 튀기는 댓글 현장
               </h2>
-              <p className="mt-1 text-xs text-zinc-600">
-                좌우 진영으로 훑고, 댓글 행을 눌러 전문과 투표를 열기.
+              <p className="mt-1 text-xs font-bold text-zinc-600">
+                사람들 왜 이렇게 싸우는지 읽다 보면 나도 한마디 남기게 됨.
               </p>
             </div>
-            <div className="grid w-full grid-cols-3 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-64">
-              {(["hot", "new", "best"] as SortType[]).map((sort) => (
+            <div className="grid w-full grid-cols-2 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-[420px] sm:grid-cols-4">
+              {(["new", "popular", "A", "B"] as CommentTab[]).map((tab) => (
                 <button
-                  key={sort}
-                  onClick={() => setSortType(sort)}
+                  key={tab}
+                  onClick={() => {
+                    setCommentTab(tab);
+                    setSortType(tab === "popular" ? "best" : "new");
+                  }}
                   className={`px-3 py-2 text-xs font-black transition ${
-                    sortType === sort
+                    commentTab === tab
                       ? "bg-cyan-300 text-black"
                       : "text-zinc-500 hover:text-zinc-200"
                   }`}
                 >
-                  {sortLabels[sort]}
+                  {commentTabLabels[tab]}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid min-w-0 gap-3 xl:grid-cols-2">
-            <div className="space-y-3 border border-rose-300/20 bg-rose-400/[0.03] p-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-black text-rose-200">
-                  A. {arena.optionA}
-                </div>
-                <div className="text-xs text-zinc-500">
-                  {sideAComments.length}개 주장
-                </div>
+          <div className="space-y-3 border border-white/10 bg-white/[0.025] p-3">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-black">
+              <div className="border border-rose-300/20 bg-rose-400/10 px-2 py-3 text-rose-100">
+                A진영 {sideAComments.length}
               </div>
-              {sideAComments.map((comment, index) =>
-                renderCommentCard(comment, index)
-              )}
-            </div>
-
-            <div className="space-y-3 border border-sky-300/20 bg-sky-400/[0.03] p-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-black text-sky-200">
-                  B. {arena.optionB}
-                </div>
-                <div className="text-xs text-zinc-500">
-                  {sideBComments.length}개 주장
-                </div>
+              <div className="border border-sky-300/20 bg-sky-400/10 px-2 py-3 text-sky-100">
+                B진영 {sideBComments.length}
               </div>
-              {sideBComments.map((comment, index) =>
-                renderCommentCard(comment, index)
-              )}
+              <div className="border border-amber-300/20 bg-amber-300/10 px-2 py-3 text-amber-100">
+                댓글 {arenaComments.length}
+              </div>
             </div>
+            {visibleComments.map((comment, index) => renderCommentCard(comment, index))}
           </div>
         </section>
       </section>
+      {relatedArenas.length > 0 ? (
+        <section className="border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-black text-white">관련 VS 추천</h2>
+            <span className="text-xs font-bold text-zinc-600">#{arena.category}</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {relatedArenas.map((item) => {
+              const relatedStats = getArenaStats(item, comments);
+
+              return (
+                <a
+                  key={item.id}
+                  href={`/arena/${item.id}`}
+                  className="border border-white/10 bg-black/25 p-3 transition hover:border-cyan-300/40"
+                >
+                  <div className="line-clamp-2 text-sm font-black text-zinc-100">
+                    {item.title}
+                  </div>
+                  <div className="mt-2 text-xs font-bold text-zinc-500">
+                    {relatedStats.aPercent}:{relatedStats.bPercent} · 댓글{" "}
+                    {relatedStats.commentCount}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-2 border-t border-white/10 bg-[#08090d]/95 p-2 backdrop-blur lg:hidden">
+        <a
+          href="#vote-zone"
+          className="bg-cyan-300 px-4 py-3 text-center text-sm font-black text-black"
+        >
+          내 편 고르기
+        </a>
+        <a
+          href="#comment-write"
+          className="border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-center text-sm font-black text-amber-100"
+        >
+          한마디 던지기
+        </a>
+      </div>
     </div>
   );
 }
