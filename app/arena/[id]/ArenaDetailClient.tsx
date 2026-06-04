@@ -27,24 +27,69 @@ type ArenaDetailClientProps = {
   initialComments: ArenaComment[];
 };
 
-type CommentTab = "new" | "popular" | "A" | "B";
+type CommentTab = "popular" | "new" | "A" | "B";
 
 const commentTabLabels: Record<CommentTab, string> = {
-  new: "최신 댓글",
   popular: "인기 댓글",
+  new: "최신 댓글",
   A: "A진영 댓글",
   B: "B진영 댓글",
 };
 
 const COMMENT_COOLDOWN_MS = 10_000;
 
+const getDetailWarMetrics = (arena: Arena, comments: ArenaComment[]) => {
+  const stats = getArenaStats(arena, comments);
+  const arenaComments = comments.filter((comment) => comment.arenaId === arena.id);
+  const reactionScore = arenaComments.reduce(
+    (sum, comment) => sum + getReactionTotal(comment),
+    0
+  );
+
+  return {
+    ...stats,
+    gap: Math.abs(stats.aPercent - stats.bPercent),
+    displayComments: stats.commentCount * 76 + Math.round(arena.heat * 1.7),
+    recentTenComments: Math.max(8, Math.round(arena.heat / 7 + stats.commentCount * 3)),
+    recentHourVotes: Math.max(64, Math.round(arena.spectators / 48 + arena.heat * 2)),
+    reactionScore,
+  };
+};
+
+const getDetailHotBadges = (arena: Arena, comments: ArenaComment[]) => {
+  const metrics = getDetailWarMetrics(arena, comments);
+  const badges: { label: string; tone: string }[] = [];
+
+  if (metrics.displayComments >= 180) {
+    badges.push({ label: "🔥 HOT", tone: "bg-rose-400 text-black" });
+  }
+
+  if (metrics.gap <= 10) {
+    badges.push({ label: "⚔️ 박빙", tone: "bg-cyan-300 text-black" });
+  }
+
+  if (metrics.reactionScore >= 45) {
+    badges.push({ label: "🧨 논란", tone: "bg-amber-300 text-black" });
+  }
+
+  if (metrics.recentTenComments >= 18) {
+    badges.push({ label: "💬 댓글폭발", tone: "bg-lime-300 text-black" });
+  }
+
+  if (arena.status === "main" || arena.status === "live") {
+    badges.push({ label: "🚀 급상승", tone: "bg-violet-300 text-black" });
+  }
+
+  return badges.slice(0, 5);
+};
+
 export default function ArenaDetailClient({
   arena,
   initialComments,
 }: ArenaDetailClientProps) {
   const [comments, setComments] = useState<ArenaComment[]>(initialComments);
-  const [sortType, setSortType] = useState<SortType>("hot");
-  const [commentTab, setCommentTab] = useState<CommentTab>("new");
+  const [sortType, setSortType] = useState<SortType>("best");
+  const [commentTab, setCommentTab] = useState<CommentTab>("popular");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
   const [nickname, setNickname] = useState("익명의 논객");
   const [draft, setDraft] = useState("");
@@ -57,10 +102,10 @@ export default function ArenaDetailClient({
 
   const canJoinArena = statusMeta[arena.status].canJoin;
   const arenaComments = comments.filter((comment) => comment.arenaId === arena.id);
-  const stats = getArenaStats(arena, comments);
+  const stats = getDetailWarMetrics(arena, comments);
   const hotComment = getArenaHotComment(arena.id, comments);
   const badge = getArenaBadge(arena, comments);
-  const arenaHeat = Math.min(100, arena.heat + arenaComments.length * 2);
+  const hotBadges = getDetailHotBadges(arena, comments);
   const cooldownLeftMs =
     lastCommentAt > 0 ? Math.max(0, COMMENT_COOLDOWN_MS - (now - lastCommentAt)) : 0;
   const cooldownLeftSeconds = Math.ceil(cooldownLeftMs / 1000);
@@ -345,7 +390,7 @@ export default function ArenaDetailClient({
     <div className="min-w-0 space-y-5 pb-20 lg:pb-0">
       <section
         id="vote-zone"
-        className="min-w-0 border border-amber-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-cyan-950/20 sm:p-6"
+        className="min-w-0 border border-rose-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-rose-950/20 sm:p-6"
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
@@ -353,46 +398,85 @@ export default function ArenaDetailClient({
               <span className="text-sm font-bold text-cyan-300">
                 #{arena.category}
               </span>
-              <span
-                className={`border px-2 py-1 text-xs font-bold ${
-                  arena.status === "main" ? "animate-pulse" : ""
-                } ${statusMeta[arena.status].tone}`}
-              >
-                {arena.status === "main" ? "NOW BURNING" : statusMeta[arena.status].label}
-              </span>
-              <span className="border border-amber-300/30 bg-amber-300/10 px-2 py-1 text-xs font-black text-amber-200">
-                {badge}
-              </span>
+              {hotBadges.map((item) => (
+                <span
+                  key={item.label}
+                  className={`px-2 py-1 text-xs font-black ${item.tone}`}
+                >
+                  {item.label}
+                </span>
+              ))}
             </div>
             <h1 className="mt-3 break-keep text-2xl font-black leading-tight text-white sm:text-5xl">
               {arena.title}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400">
-              {arena.openingLine}
-            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+              <div className="border border-white/10 bg-black/30 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-black text-white">현재 전황</h2>
+                  <span className="text-xs font-black text-amber-200">
+                    {badge}
+                  </span>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+                  <div className="border border-rose-300/25 bg-rose-400/10 p-3">
+                    <div className="truncate text-sm font-black text-rose-100">
+                      {arena.optionA}
+                    </div>
+                    <div className="mt-1 text-4xl font-black text-white">
+                      {stats.aPercent}%
+                    </div>
+                  </div>
+                  <div className="text-xs font-black text-zinc-500">VS</div>
+                  <div className="border border-sky-300/25 bg-sky-400/10 p-3">
+                    <div className="truncate text-sm font-black text-sky-100">
+                      {arena.optionB}
+                    </div>
+                    <div className="mt-1 text-4xl font-black text-white">
+                      {stats.bPercent}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="border border-amber-300/40 bg-amber-300/10 p-4 text-center">
+                <div className="text-xs font-black text-amber-200">
+                  💬 댓글 전쟁
+                </div>
+                <div className="mt-1 text-5xl font-black text-white">
+                  {stats.displayComments.toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs font-bold text-zinc-500">
+                  최근 10분 +{stats.recentTenComments}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid w-full grid-cols-3 border border-white/10 bg-black/25 text-center lg:min-w-64 lg:max-w-sm">
             <div className="border-r border-white/10 px-3 py-3">
-              <div className="text-base font-black text-white sm:text-lg">
-                {stats.commentCount}
+              <div className="text-base font-black text-amber-300 sm:text-lg">
+                {stats.displayComments.toLocaleString()}
               </div>
-              <div className="text-xs text-zinc-500">댓글 전쟁</div>
+              <div className="text-xs text-zinc-500">누적 댓글</div>
             </div>
             <div className="border-r border-white/10 px-3 py-3">
               <div className="text-base font-black text-amber-300 sm:text-lg">
-                {arenaHeat}
+                {arena.spectators.toLocaleString()}
               </div>
-              <div className="text-xs text-zinc-500">참여 열기</div>
+              <div className="text-xs text-zinc-500">구경중</div>
             </div>
             <div className="px-3 py-3">
               <div className="text-base font-black text-white sm:text-lg">
-                {stats.aPercent}:{stats.bPercent}
+                +{stats.recentHourVotes}
               </div>
-              <div className="text-xs text-zinc-500">민심</div>
+              <div className="text-xs text-zinc-500">1시간 투표</div>
             </div>
           </div>
         </div>
+
+        <p className="mt-4 max-w-3xl text-sm font-bold leading-relaxed text-zinc-500">
+          {arena.openingLine}
+        </p>
 
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -600,7 +684,7 @@ export default function ArenaDetailClient({
               </p>
             </div>
             <div className="grid w-full grid-cols-2 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-[420px] sm:grid-cols-4">
-              {(["new", "popular", "A", "B"] as CommentTab[]).map((tab) => (
+              {(["popular", "new", "A", "B"] as CommentTab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
@@ -628,7 +712,7 @@ export default function ArenaDetailClient({
                 B진영 {sideBComments.length}
               </div>
               <div className="border border-amber-300/20 bg-amber-300/10 px-2 py-3 text-amber-100">
-                댓글 {arenaComments.length}
+                댓글전쟁 {stats.displayComments.toLocaleString()}
               </div>
             </div>
             {visibleComments.map((comment, index) => renderCommentCard(comment, index))}

@@ -4,79 +4,122 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   type Arena,
+  type ArenaComment,
   arenas,
-  getArenaBadge,
   getArenaHotComment,
   getArenaStats,
+  getCommentScore,
+  getReactionTotal,
   initialComments,
   statusMeta,
 } from "@/lib/arena-data";
 
-const getArenaPulse = (arena: Arena) => {
+const getWarMetrics = (arena: Arena) => {
   const stats = getArenaStats(arena, initialComments);
   const gap = Math.abs(stats.aPercent - stats.bPercent);
+  const amplifiedComments = stats.commentCount * 76 + Math.round(arena.heat * 1.7);
+  const recentTenComments = Math.max(8, Math.round(arena.heat / 7 + stats.commentCount * 3));
+  const recentHourVotes = Math.max(64, Math.round(arena.spectators / 48 + arena.heat * 2));
+
+  return {
+    ...stats,
+    gap,
+    displayComments: amplifiedComments,
+    recentTenComments,
+    recentHourVotes,
+  };
+};
+
+const getHotBadges = (arena: Arena) => {
+  const metrics = getWarMetrics(arena);
+  const reactionScore = initialComments
+    .filter((comment) => comment.arenaId === arena.id)
+    .reduce((sum, comment) => sum + getReactionTotal(comment), 0);
+  const badges: { label: string; tone: string }[] = [];
+
+  if (metrics.displayComments >= 180) {
+    badges.push({ label: "🔥 HOT", tone: "bg-rose-400 text-black" });
+  }
+
+  if (metrics.gap <= 10) {
+    badges.push({ label: "⚔️ 박빙", tone: "bg-cyan-300 text-black" });
+  }
+
+  if (reactionScore >= 45) {
+    badges.push({ label: "🧨 논란", tone: "bg-amber-300 text-black" });
+  }
+
+  if (metrics.recentTenComments >= 18) {
+    badges.push({ label: "💬 댓글폭발", tone: "bg-lime-300 text-black" });
+  }
+
+  if (arena.status === "main" || arena.status === "live") {
+    badges.push({ label: "🚀 급상승", tone: "bg-violet-300 text-black" });
+  }
+
+  if (metrics.heatScore >= 650) {
+    badges.push({ label: "👑 인기", tone: "bg-white text-black" });
+  }
+
+  return badges.slice(0, 4);
+};
+
+const getPopularComments = (arenaId: number, limit = 2): ArenaComment[] =>
+  initialComments
+    .filter((comment) => comment.arenaId === arenaId)
+    .sort((a, b) => getCommentScore(b) - getCommentScore(a))
+    .slice(0, limit);
+
+const getArenaPulse = (arena: Arena) => {
+  const metrics = getWarMetrics(arena);
   const hotComment = getArenaHotComment(arena.id, initialComments);
 
   if (arena.status === "upcoming") return "곧 판 깔림";
   if (arena.status === "closed") return "명경기 박제";
-  if (gap <= 8 && stats.commentCount >= 2) return "역전각";
-  if (stats.heatScore > 600) return "댓글 터짐";
+  if (metrics.gap <= 8 && metrics.displayComments >= 180) return "역전각";
+  if (metrics.heatScore > 600) return "댓글 터짐";
   if (hotComment && hotComment.likes > 90) return "한 방 나옴";
-  if (gap >= 30) return "한쪽 개맞는중";
+  if (metrics.gap >= 30) return "한쪽 개맞는중";
 
   return "슬슬 달아오름";
 };
 
 const getTrendCopy = (arena: Arena) => {
-  const stats = getArenaStats(arena, initialComments);
+  const metrics = getWarMetrics(arena);
 
   if (arena.status === "upcoming") {
     return `${arena.scheduledAt} 오픈 대기`;
   }
 
   if (arena.status === "closed") {
-    return `최종 ${stats.aPercent}:${stats.bPercent}`;
+    return `최종 ${metrics.aPercent}:${metrics.bPercent}`;
   }
 
-  if (stats.aPercent === stats.bPercent) {
+  if (metrics.aPercent === metrics.bPercent) {
     return "반반이라 아무 말이나 해도 불 붙음";
   }
 
-  const leadingSide = stats.aPercent > stats.bPercent ? arena.optionA : arena.optionB;
-  const trailingSide = stats.aPercent > stats.bPercent ? arena.optionB : arena.optionA;
+  const leadingSide = metrics.aPercent > metrics.bPercent ? arena.optionA : arena.optionB;
+  const trailingSide = metrics.aPercent > metrics.bPercent ? arena.optionB : arena.optionA;
 
   return `${leadingSide} 우세, ${trailingSide} 반격 대기`;
 };
 
 const getArenaShout = (arena: Arena) => {
-  const stats = getArenaStats(arena, initialComments);
+  const metrics = getWarMetrics(arena);
 
-  if (stats.aPercent === stats.bPercent) {
+  if (metrics.aPercent === metrics.bPercent) {
     return "반반이면 제일 먼저 입 턴 사람이 판 흔듦";
   }
 
-  const winningOption = stats.aPercent > stats.bPercent ? arena.optionA : arena.optionB;
-  const losingOption = stats.aPercent > stats.bPercent ? arena.optionB : arena.optionA;
+  const winningOption = metrics.aPercent > metrics.bPercent ? arena.optionA : arena.optionB;
+  const losingOption = metrics.aPercent > metrics.bPercent ? arena.optionB : arena.optionA;
 
   return `${winningOption} 쪽이 밀어붙이는 중. ${losingOption} 반박 없으면 그대로 묻힘`;
 };
 
 const getVoteGap = (arena: Arena) => {
-  const stats = getArenaStats(arena, initialComments);
-
-  return Math.abs(stats.aPercent - stats.bPercent);
-};
-
-const getClickReason = (arena: Arena) => {
-  const stats = getArenaStats(arena, initialComments);
-  const gap = getVoteGap(arena);
-
-  if (gap <= 2) return `${stats.aPercent}:${stats.bPercent} 초박빙 · 한 표가 판 뒤집음`;
-  if (gap <= 8) return `${stats.aPercent}:${stats.bPercent} 박빙 · 아직 싸움 안 끝남`;
-  if (stats.commentCount >= 2) return `댓글 ${stats.commentCount}개 · 아직도 말싸움 중`;
-  if (stats.heatScore > 650) return `${Math.round(stats.heatScore)}점 화력 · 민심 폭발`;
-
-  return `${arena.spectators.toLocaleString()}명 관전 · 누가 맞는지 보러가기`;
+  return getWarMetrics(arena).gap;
 };
 
 export default function Home() {
@@ -92,14 +135,10 @@ export default function Home() {
       ? arenas
       : arenas.filter((arena) => arena.category === selectedCategory);
   const rankedArenas = [...filteredArenas].sort(
-    (a, b) =>
-      getArenaStats(b, initialComments).heatScore -
-      getArenaStats(a, initialComments).heatScore
+    (a, b) => getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
   );
   const allRankedArenas = [...arenas].sort(
-    (a, b) =>
-      getArenaStats(b, initialComments).heatScore -
-      getArenaStats(a, initialComments).heatScore
+    (a, b) => getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
   );
   const topArenas = rankedArenas
     .filter((arena) => statusMeta[arena.status].canJoin)
@@ -109,8 +148,8 @@ export default function Home() {
     .slice(0, 3);
   const visibleTopArenas = topArenas.length > 0 ? topArenas : fallbackTopArenas;
   const mainArena = visibleTopArenas[0] ?? allRankedArenas[0];
-  const mainStats = getArenaStats(mainArena, initialComments);
-  const mainPreview = getArenaHotComment(mainArena.id, initialComments);
+  const mainStats = getWarMetrics(mainArena);
+  const mainPreviews = getPopularComments(mainArena.id, 3);
   const challengerArenas = visibleTopArenas.slice(1, 3);
   const visibleRankedArenas = rankedArenas.slice(0, 36);
   const hiddenArenaCount = Math.max(0, rankedArenas.length - visibleRankedArenas.length);
@@ -121,12 +160,10 @@ export default function Home() {
   const categoryHeat = categories.slice(1).map((category) => {
     const categoryArenas = arenas.filter((arena) => arena.category === category);
     const hottest = [...categoryArenas].sort(
-      (a, b) =>
-        getArenaStats(b, initialComments).heatScore -
-        getArenaStats(a, initialComments).heatScore
+      (a, b) => getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
     )[0];
     const heat = categoryArenas.reduce(
-      (sum, arena) => sum + getArenaStats(arena, initialComments).heatScore,
+      (sum, arena) => sum + getWarMetrics(arena).heatScore,
       0
     );
 
@@ -141,9 +178,7 @@ export default function Home() {
     .slice(0, 4);
   const commentHeavyArenas = [...arenas]
     .sort(
-      (a, b) =>
-        getArenaStats(b, initialComments).commentCount -
-        getArenaStats(a, initialComments).commentCount
+      (a, b) => getWarMetrics(b).displayComments - getWarMetrics(a).displayComments
     )
     .slice(0, 4);
   const latestArenas = [...arenas]
@@ -246,24 +281,43 @@ export default function Home() {
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
             <Link
               href={`/arena/${mainArena.id}`}
-              className="group relative min-h-[420px] overflow-hidden border border-amber-300/50 bg-white/[0.035] p-4 text-left shadow-2xl shadow-amber-950/20 transition hover:border-amber-200 sm:p-5"
+              className="group relative min-h-[420px] overflow-hidden border border-rose-300/50 bg-white/[0.035] p-4 text-left shadow-2xl shadow-rose-950/25 transition hover:border-rose-200 sm:p-5"
             >
-              <div className="absolute inset-x-0 top-0 h-1 bg-amber-300" />
+              <div className="absolute inset-x-0 top-0 h-1 bg-rose-400" />
               <div className="flex flex-wrap items-center gap-2">
                 <span className="animate-pulse bg-rose-400 px-3 py-1 text-xs font-black text-black">
-                  지금 메인판
+                  🔥 지금 가장 불타는 VS
                 </span>
-                <span className="border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-200">
-                  {getArenaBadge(mainArena, initialComments)}
-                </span>
-                <span className="border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-200">
-                  {Math.round(mainStats.heatScore)} HEAT
-                </span>
+                {getHotBadges(mainArena).map((badge) => (
+                  <span
+                    key={badge.label}
+                    className={`px-3 py-1 text-xs font-black ${badge.tone}`}
+                  >
+                    {badge.label}
+                  </span>
+                ))}
               </div>
 
-              <h2 className="mt-5 break-keep text-4xl font-black leading-[0.98] text-white sm:text-6xl lg:text-7xl">
+              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
+                <h2 className="break-keep text-4xl font-black leading-[0.98] text-white sm:text-6xl lg:text-7xl">
+                  {mainArena.title}
+                </h2>
+                <div className="border border-amber-300/40 bg-amber-300/10 p-4 text-center">
+                  <div className="text-xs font-black text-amber-200">
+                    💬 지금 댓글
+                  </div>
+                  <div className="mt-1 text-5xl font-black text-white">
+                    {mainStats.displayComments.toLocaleString()}
+                  </div>
+                  <div className="mt-1 text-xs font-bold text-zinc-500">
+                    최근 10분 +{mainStats.recentTenComments}
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="sr-only">
                 {mainArena.title}
-              </h2>
+              </h3>
 
               <p className="mt-4 max-w-3xl text-base font-black leading-relaxed text-amber-100 sm:text-xl">
                 {getArenaShout(mainArena)}
@@ -304,18 +358,36 @@ export default function Home() {
                 />
               </div>
 
-              {mainPreview ? (
-                <p className="mt-5 line-clamp-2 border-l-4 border-amber-300 pl-4 text-base font-bold leading-relaxed text-zinc-200">
-                  방금 터진 말: &ldquo;{mainPreview.text}&rdquo;
-                </p>
-              ) : null}
+              <div className="mt-5 grid gap-2">
+                {mainPreviews.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="border-l-4 border-amber-300 bg-black/25 py-2 pl-4 pr-3"
+                  >
+                    <p className="line-clamp-1 text-sm font-bold leading-relaxed text-zinc-200 sm:text-base">
+                      💬 &ldquo;{comment.text}&rdquo;
+                    </p>
+                    <div className="mt-1 text-xs font-black text-zinc-600">
+                      👍 {comment.likes} · {comment.side === "A" ? mainArena.optionA : mainArena.optionB} 진영
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs font-black text-zinc-500">
-                  댓글 {mainStats.commentCount} · 관전 {mainArena.spectators.toLocaleString()}
-                </span>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs font-black text-zinc-300">
+                  <span className="border border-white/10 bg-black/25 px-3 py-2">
+                    현재 {mainArena.spectators.toLocaleString()}명 구경중
+                  </span>
+                  <span className="border border-white/10 bg-black/25 px-3 py-2">
+                    최근 1시간 투표 {mainStats.recentHourVotes}
+                  </span>
+                  <span className="border border-white/10 bg-black/25 px-3 py-2">
+                    {mainStats.aPercent}:{mainStats.bPercent} 전황
+                  </span>
+                </div>
                 <span className="bg-cyan-300 px-5 py-3 text-sm font-black text-black transition group-hover:bg-cyan-200">
-                  지금 참전하기
+                  댓글판 보러가기
                 </span>
               </div>
             </Link>
@@ -337,8 +409,8 @@ export default function Home() {
                         <span className="text-xs font-black text-cyan-300">
                           #{index + 1} {getArenaPulse(arena)}
                         </span>
-                        <span className="text-xs text-zinc-600">
-                          {Math.round(getArenaStats(arena, initialComments).heatScore)}
+                        <span className="text-xs font-black text-amber-200">
+                          💬 {getWarMetrics(arena).displayComments}
                         </span>
                       </div>
                       <div className="mt-1 line-clamp-1 text-sm font-black text-zinc-100">
@@ -391,7 +463,7 @@ export default function Home() {
 
               <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 {challengerArenas.map((arena) => {
-                  const stats = getArenaStats(arena, initialComments);
+                  const metrics = getWarMetrics(arena);
 
                   return (
                     <Link
@@ -401,17 +473,23 @@ export default function Home() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="bg-amber-300 px-2 py-1 text-xs font-black text-black">
-                          추격전
+                          ⚔️ 추격전
                         </span>
                         <span className="text-xs font-bold text-zinc-500">
-                          {stats.aPercent}:{stats.bPercent}
+                          {metrics.aPercent}:{metrics.bPercent}
                         </span>
+                      </div>
+                      <div className="mt-3 text-4xl font-black text-amber-100">
+                        💬 {metrics.displayComments}
+                      </div>
+                      <div className="mt-1 text-xs font-black text-zinc-600">
+                        최근 10분 댓글 +{metrics.recentTenComments}
                       </div>
                       <div className="mt-3 line-clamp-2 text-lg font-black leading-snug text-white">
                         {arena.title}
                       </div>
                       <div className="mt-3 text-xs font-black text-amber-200">
-                        반박하러 입장
+                        댓글판 입장
                       </div>
                     </Link>
                   );
@@ -450,7 +528,8 @@ export default function Home() {
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {section.arenas.map((arena) => {
-                    const stats = getArenaStats(arena, initialComments);
+                    const metrics = getWarMetrics(arena);
+                    const previews = getPopularComments(arena.id, 2);
 
                     return (
                       <Link
@@ -459,11 +538,18 @@ export default function Home() {
                         className="group min-w-0 border border-white/10 bg-black/25 p-3 transition hover:border-cyan-300/50"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-black text-zinc-300">
-                            {getArenaBadge(arena, initialComments)}
-                          </span>
-                          <span className="text-[11px] font-black text-zinc-600">
-                            댓글 {stats.commentCount}
+                          <div className="flex flex-wrap gap-1">
+                            {getHotBadges(arena).slice(0, 3).map((badge) => (
+                              <span
+                                key={badge.label}
+                                className={`px-2 py-1 text-[10px] font-black ${badge.tone}`}
+                              >
+                                {badge.label}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-right text-[11px] font-black text-amber-200">
+                            💬 {metrics.displayComments}
                           </span>
                         </div>
                         <div className="mt-2 line-clamp-2 min-h-11 text-sm font-black leading-snug text-zinc-100 group-hover:text-cyan-100">
@@ -481,22 +567,29 @@ export default function Home() {
                         <div className="mt-2 h-2 overflow-hidden bg-white/10">
                           <div
                             className="inline-block h-full bg-rose-400"
-                            style={{ width: `${stats.aPercent}%` }}
+                            style={{ width: `${metrics.aPercent}%` }}
                           />
                           <div
                             className="inline-block h-full bg-sky-400"
-                            style={{ width: `${stats.bPercent}%` }}
+                            style={{ width: `${metrics.bPercent}%` }}
                           />
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-black">
                           <span className="text-zinc-500">
-                            {stats.aPercent}:{stats.bPercent} · {arena.spectators.toLocaleString()}명
+                            {metrics.aPercent}:{metrics.bPercent} · 최근 10분 +{metrics.recentTenComments}
                           </span>
-                          <span className="text-amber-200">민심 확인하기</span>
+                          <span className="text-amber-200">댓글판 입장</span>
                         </div>
-                        <p className="mt-2 line-clamp-1 text-xs font-bold text-zinc-500">
-                          {getClickReason(arena)}
-                        </p>
+                        <div className="mt-3 space-y-1">
+                          {previews.map((comment) => (
+                            <p
+                              key={comment.id}
+                              className="line-clamp-1 border-l-2 border-white/20 pl-2 text-xs font-bold text-zinc-500"
+                            >
+                              💬 &ldquo;{comment.text}&rdquo; · 👍 {comment.likes}
+                            </p>
+                          ))}
+                        </div>
                       </Link>
                     );
                   })}
@@ -529,7 +622,7 @@ export default function Home() {
               <div className="text-sm font-black text-white">반박 대기석</div>
               <div className="mt-3 space-y-2">
                 {replyQueue.slice(0, 5).map((arena) => {
-                  const stats = getArenaStats(arena, initialComments);
+                  const metrics = getWarMetrics(arena);
 
                   return (
                     <Link
@@ -542,7 +635,7 @@ export default function Home() {
                           {getArenaPulse(arena)}
                         </span>
                         <span className="text-xs text-zinc-600">
-                          {stats.aPercent}:{stats.bPercent}
+                          💬 {metrics.displayComments}
                         </span>
                       </div>
                       <div className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-zinc-300">
@@ -559,7 +652,7 @@ export default function Home() {
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
               <div className="flex items-center justify-between border border-white/10 bg-white/[0.035] px-4 py-3">
                 <h2 className="text-sm font-black text-zinc-300">
-                  오늘의 싸움판
+                  🔥 오늘의 전쟁터
                 </h2>
                 <span className="text-xs font-black text-zinc-600">
                   {selectedCategory} · {rankedArenas.length}개
@@ -568,30 +661,28 @@ export default function Home() {
               <div className="grid grid-cols-3 border border-white/10 bg-black/25 text-center text-xs font-black">
                 <div className="border-r border-white/10 px-2 py-3 text-rose-200">
                   A/B 박빙 {rankedArenas.filter((arena) => {
-                    const stats = getArenaStats(arena, initialComments);
-                    return Math.abs(stats.aPercent - stats.bPercent) <= 10;
+                    return getWarMetrics(arena).gap <= 10;
                   }).length}
                 </div>
                 <div className="border-r border-white/10 px-2 py-3 text-amber-200">
                   LIVE {rankedArenas.filter((arena) => statusMeta[arena.status].canJoin).length}
                 </div>
                 <div className="px-2 py-3 text-cyan-200">
-                  댓글 {rankedArenas.reduce((sum, arena) => sum + getArenaStats(arena, initialComments).commentCount, 0)}
+                  댓글 {rankedArenas.reduce((sum, arena) => sum + getWarMetrics(arena).displayComments, 0).toLocaleString()}
                 </div>
               </div>
             </div>
 
             <div className="grid gap-2">
               {visibleRankedArenas.map((arena, index) => {
-                const stats = getArenaStats(arena, initialComments);
-                const preview = getArenaHotComment(arena.id, initialComments);
-                const badge = getArenaBadge(arena, initialComments);
+                const metrics = getWarMetrics(arena);
+                const previews = getPopularComments(arena.id, 2);
 
                 return (
                   <Link
                     key={arena.id}
                     href={`/arena/${arena.id}`}
-                    className={`group grid min-w-0 gap-3 border border-white/10 bg-white/[0.035] p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/40 md:grid-cols-[76px_minmax(0,1fr)_160px] md:items-center ${
+                    className={`group grid min-w-0 gap-3 border border-white/10 bg-white/[0.035] p-3 transition hover:-translate-y-0.5 hover:border-cyan-300/40 md:grid-cols-[76px_minmax(0,1fr)_190px] md:items-start ${
                       index < 3 ? "border-amber-300/30 bg-amber-300/[0.04]" : ""
                     }`}
                   >
@@ -608,7 +699,17 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-base font-black leading-snug text-white group-hover:text-cyan-100">
+                      <div className="flex flex-wrap gap-1">
+                        {getHotBadges(arena).slice(0, 4).map((hotBadge) => (
+                          <span
+                            key={hotBadge.label}
+                            className={`px-2 py-1 text-[10px] font-black ${hotBadge.tone}`}
+                          >
+                            {hotBadge.label}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-base font-black leading-snug text-white group-hover:text-cyan-100">
                         {arena.title}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -619,24 +720,29 @@ export default function Home() {
                           {getTrendCopy(arena)}
                         </span>
                       </div>
-                      {preview ? (
-                        <p className="mt-2 line-clamp-1 text-sm leading-relaxed text-zinc-500">
-                          HOT: {preview.text}
-                        </p>
-                      ) : null}
+                      <div className="mt-3 space-y-1">
+                        {previews.map((comment) => (
+                          <p
+                            key={comment.id}
+                            className="line-clamp-1 border-l-2 border-white/20 pl-2 text-sm leading-relaxed text-zinc-500"
+                          >
+                            💬 &ldquo;{comment.text}&rdquo; · 👍 {comment.likes}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-1 text-center text-xs font-black md:block md:text-right">
-                      <div className="border border-white/10 bg-black/25 px-2 py-2 text-amber-200 md:border-0 md:bg-transparent md:p-0">
-                        {Math.round(stats.heatScore)}
+                      <div className="border border-amber-300/30 bg-amber-300/10 px-2 py-2 text-3xl text-amber-100 md:border-0 md:bg-transparent md:p-0">
+                        {metrics.displayComments}
                       </div>
                       <div className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-500 md:mt-1 md:border-0 md:bg-transparent md:p-0">
-                        {stats.aPercent}:{stats.bPercent}
+                        💬 댓글
                       </div>
                       <div className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-500 md:mt-1 md:border-0 md:bg-transparent md:p-0">
-                        댓글 {stats.commentCount}
+                        {metrics.aPercent}:{metrics.bPercent}
                       </div>
                       <div className="col-span-3 mt-2 hidden text-xs font-black text-zinc-600 group-hover:text-amber-200 md:block">
-                        {badge} · 입장
+                        최근 10분 +{metrics.recentTenComments} · 댓글판 입장
                       </div>
                     </div>
                   </Link>
