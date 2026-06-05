@@ -27,11 +27,11 @@ type ArenaDetailClientProps = {
   initialComments: ArenaComment[];
 };
 
-type CommentTab = "popular" | "new" | "A" | "B";
+type CommentTab = "new" | "popular" | "A" | "B";
 
 const commentTabLabels: Record<CommentTab, string> = {
-  popular: "인기 댓글",
   new: "최신 댓글",
+  popular: "인기 댓글",
   A: "A진영 댓글",
   B: "B진영 댓글",
 };
@@ -88,8 +88,8 @@ export default function ArenaDetailClient({
   initialComments,
 }: ArenaDetailClientProps) {
   const [comments, setComments] = useState<ArenaComment[]>(initialComments);
-  const [sortType, setSortType] = useState<SortType>("best");
-  const [commentTab, setCommentTab] = useState<CommentTab>("popular");
+  const [sortType, setSortType] = useState<SortType>("new");
+  const [commentTab, setCommentTab] = useState<CommentTab>("new");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
   const [nickname, setNickname] = useState("익명의 논객");
   const [draft, setDraft] = useState("");
@@ -110,6 +110,30 @@ export default function ArenaDetailClient({
     lastCommentAt > 0 ? Math.max(0, COMMENT_COOLDOWN_MS - (now - lastCommentAt)) : 0;
   const cooldownLeftSeconds = Math.ceil(cooldownLeftMs / 1000);
   const canSubmitComment = canJoinArena && cooldownLeftMs === 0 && draft.trim().length >= 5;
+  const selectedOption = selectedSide === "A" ? arena.optionA : arena.optionB;
+  const opposingOption = selectedSide === "A" ? arena.optionB : arena.optionA;
+  const draftPlaceholder =
+    selectedSide === "A"
+      ? `${opposingOption} 쪽 말이 안 먹히는 이유를 한 방 먹여주세요.`
+      : `${opposingOption} 쪽이 놓친 걸 바로 찔러주세요.`;
+  const commentTemplates = [
+    {
+      label: "반박하기",
+      text: `반박하자면, ${opposingOption} 쪽 주장은 ___ 때문에 말이 안 됨.`,
+    },
+    {
+      label: "드립치기",
+      text: `솔직히 이건 ${selectedOption} 쪽이 이기는 그림이 너무 웃김. 왜냐면 ___`,
+    },
+    {
+      label: "팩트체크",
+      text: `팩트만 보면 ${selectedOption} 쪽이 맞는 이유는 ___`,
+    },
+    {
+      label: "한줄평",
+      text: `${selectedOption} 편 든다. 이유는 간단함. ___`,
+    },
+  ];
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -264,6 +288,31 @@ export default function ArenaDetailClient({
     });
   };
 
+  const applyCommentTemplate = (template: string) => {
+    setDraft((current) => {
+      if (!current.trim()) return template;
+
+      return `${current.trim()}\n${template}`;
+    });
+  };
+
+  const prepareReply = (comment: ArenaComment) => {
+    const replySide = comment.side === "A" ? "B" : "A";
+    const replyOption = replySide === "A" ? arena.optionA : arena.optionB;
+    const shortQuote =
+      comment.text.length > 42 ? `${comment.text.slice(0, 42)}...` : comment.text;
+
+    setSelectedSide(replySide);
+    setDraft(
+      `반박하자면, "${shortQuote}" 이 말은 ___ 때문에 ${replyOption} 쪽에서 못 받음.`
+    );
+    window.setTimeout(() => {
+      document
+        .getElementById("comment-write")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  };
+
   const toggleExpanded = (id: number) => {
     setExpandedIds((current) => {
       const next = new Set(current);
@@ -299,7 +348,7 @@ export default function ArenaDetailClient({
             : "border-white/10"
         }`}
       >
-        <div className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_96px] sm:items-center">
+        <div className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
           <button
             onClick={() => toggleExpanded(comment.id)}
             className="min-w-0 text-left"
@@ -338,16 +387,36 @@ export default function ArenaDetailClient({
               <span>싫어요 {dislikes}</span>
               <span>답글 {replies}</span>
               <span>점수 {score}</span>
-              <span>{isExpanded ? "접기" : "펼쳐서 투표"}</span>
+              <span>{isExpanded ? "접기" : "이 말 반박하기"}</span>
             </div>
           </button>
 
-          <button
-            onClick={() => likeComment(comment.id)}
-            className="border border-white/10 px-3 py-2 text-sm font-bold text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
-          >
-            좋아요 {comment.likes}
-          </button>
+          <div className="grid grid-cols-2 gap-1 text-xs font-black">
+            <button
+              onClick={() => likeComment(comment.id)}
+              className="border border-lime-300/30 bg-lime-300/10 px-2 py-2 text-lime-100 transition hover:bg-lime-300 hover:text-black"
+            >
+              맞말
+            </button>
+            <button
+              onClick={() => reactToComment(comment.id, "stretch")}
+              className="border border-violet-300/30 bg-violet-300/10 px-2 py-2 text-violet-100 transition hover:bg-violet-300 hover:text-black"
+            >
+              억지
+            </button>
+            <button
+              onClick={() => prepareReply(comment)}
+              className="border border-rose-300/30 bg-rose-400/10 px-2 py-2 text-rose-100 transition hover:bg-rose-300 hover:text-black"
+            >
+              반박하기
+            </button>
+            <button
+              onClick={() => toggleExpanded(comment.id)}
+              className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-300 transition hover:border-cyan-300 hover:text-cyan-100"
+            >
+              답글 보기 {replies}
+            </button>
+          </div>
         </div>
 
         {isExpanded ? (
@@ -387,7 +456,7 @@ export default function ArenaDetailClient({
   };
 
   return (
-    <div className="min-w-0 space-y-5 pb-20 lg:pb-0">
+    <div className="min-w-0 space-y-5 pb-44">
       <section
         id="vote-zone"
         className="min-w-0 border border-rose-300/30 bg-white/[0.04] p-4 shadow-2xl shadow-rose-950/20 sm:p-6"
@@ -577,7 +646,7 @@ export default function ArenaDetailClient({
             </h2>
             <p className="mt-1 text-xs text-zinc-500">
               {canJoinArena
-                ? "먼저 편 고르고, 왜 그쪽인지 한 방 먹이면 됨."
+                ? "읽다가 빡치면 바로 아래에서 한 줄 박으면 됨."
                 : "예정 또는 종료된 경기는 댓글 작성이 잠겨 있음."}
             </p>
 
@@ -590,9 +659,9 @@ export default function ArenaDetailClient({
               aria-label="닉네임"
             />
             <div className="mt-3 flex flex-wrap items-center border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-400">
-              1. 나는 어느 편인가:
+              너는 누구 편?
               <strong className="ml-2 text-white">
-                {selectedSide === "A" ? arena.optionA : arena.optionB}
+                {selectedOption}
               </strong>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -609,7 +678,7 @@ export default function ArenaDetailClient({
                       : "border-white/10 bg-black/30 text-zinc-400 hover:border-white/30"
                   }`}
                 >
-                  {side === "A" ? arena.optionA : arena.optionB}
+                  {side === "A" ? arena.optionA : arena.optionB} 편으로 참전
                 </button>
               ))}
             </div>
@@ -622,8 +691,21 @@ export default function ArenaDetailClient({
             >
               지금 너는 {selectedSide === "A" ? "A" : "B"}편.{" "}
               <span className="text-zinc-400">
-                {selectedSide === "A" ? arena.optionA : arena.optionB}로 입장 중
+                {selectedOption}로 입장 중
               </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {commentTemplates.map((template) => (
+                <button
+                  key={template.label}
+                  type="button"
+                  onClick={() => applyCommentTemplate(template.text)}
+                  disabled={!canJoinArena}
+                  className="border border-white/10 bg-black/30 px-3 py-2 text-xs font-black text-zinc-300 transition hover:border-amber-300 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {template.label}
+                </button>
+              ))}
             </div>
             <textarea
               value={draft}
@@ -631,7 +713,7 @@ export default function ArenaDetailClient({
               disabled={!canJoinArena}
               placeholder={
                 canJoinArena
-                  ? "왜 이쪽이 맞는지 한 방 먹여주세요."
+                  ? draftPlaceholder
                   : "이 경기는 지금 관전만 가능함."
               }
               className="mt-3 min-h-44 w-full resize-none border border-white/10 bg-black/40 p-4 text-sm leading-relaxed text-white outline-none transition placeholder:text-zinc-600 focus:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
@@ -684,7 +766,7 @@ export default function ArenaDetailClient({
               </p>
             </div>
             <div className="grid w-full grid-cols-2 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-[420px] sm:grid-cols-4">
-              {(["popular", "new", "A", "B"] as CommentTab[]).map((tab) => (
+              {(["new", "popular", "A", "B"] as CommentTab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
@@ -748,19 +830,57 @@ export default function ArenaDetailClient({
           </div>
         </section>
       ) : null}
-      <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-2 border-t border-white/10 bg-[#08090d]/95 p-2 backdrop-blur lg:hidden">
-        <a
-          href="#vote-zone"
-          className="bg-cyan-300 px-4 py-3 text-center text-sm font-black text-black"
-        >
-          내 편 고르기
-        </a>
-        <a
-          href="#comment-write"
-          className="border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-center text-sm font-black text-amber-100"
-        >
-          한마디 던지기
-        </a>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#08090d]/95 p-2 backdrop-blur">
+        <div className="mx-auto grid max-w-5xl gap-2 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+          <div className="grid grid-cols-2 gap-1">
+            {(["A", "B"] as Side[]).map((side) => (
+              <button
+                key={side}
+                type="button"
+                onClick={() => setSelectedSide(side)}
+                disabled={!canJoinArena}
+                className={`min-h-10 border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  selectedSide === side
+                    ? side === "A"
+                      ? "border-rose-300 bg-rose-300 text-black"
+                      : "border-sky-300 bg-sky-300 text-black"
+                    : "border-white/10 bg-black/40 text-zinc-400 hover:border-white/30"
+                }`}
+              >
+                {side === "A" ? arena.optionA : arena.optionB}
+              </button>
+            ))}
+          </div>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            disabled={!canJoinArena}
+            placeholder={`${selectedOption} 편으로 한마디 남기기...`}
+            className="min-h-11 w-full border border-white/10 bg-black/50 px-4 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+            maxLength={1200}
+            aria-label="하단 고정 댓글 입력"
+          />
+          <button
+            onClick={addComment}
+            disabled={!canSubmitComment}
+            className="min-h-11 border border-cyan-300 bg-cyan-300 px-5 text-sm font-black text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
+          >
+            댓글쓰기
+          </button>
+          <div className="flex min-w-0 gap-1 overflow-x-auto lg:col-span-3">
+            {commentTemplates.map((template) => (
+              <button
+                key={template.label}
+                type="button"
+                onClick={() => applyCommentTemplate(template.text)}
+                disabled={!canJoinArena}
+                className="shrink-0 border border-white/10 bg-black/30 px-3 py-2 text-[11px] font-black text-zinc-400 transition hover:border-amber-300 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {template.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
