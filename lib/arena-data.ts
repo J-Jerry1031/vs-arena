@@ -520,10 +520,15 @@ export const seededNumber = (seed: number, min: number, max: number) => {
 };
 
 const votePercents = [51, 63, 74, 48, 82, 56, 39, 68, 43, 57, 71, 52, 66, 35, 79, 46, 61, 88, 54, 72, 41, 59];
+const closeVotePercents = [51, 52, 49, 53, 46, 48, 54];
 
 export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => {
   const heat = seededNumber(arena.id * 5 + arena.heat, 58, 98);
-  const leftPercent = votePercents[arena.id % votePercents.length];
+  const baseLeftPercent = votePercents[arena.id % votePercents.length];
+  const leftPercent =
+    Math.abs(baseLeftPercent - 50) <= 4
+      ? closeVotePercents[seededNumber(arena.id * 31 + arena.heat, 0, closeVotePercents.length - 1)]
+      : baseLeftPercent;
 
   return {
     ...arena,
@@ -657,25 +662,29 @@ const generatedNicknames = [
 ];
 
 const generatedAComments = [
-  (arena: Arena) => `${arena.optionA}. 이건 고민 길게 할수록 이상해짐. 막상 닥치면 손이 먼저 이쪽으로 감.`,
-  (arena: Arena) => `난 ${arena.optionA} 간다. ${arena.optionB}는 말은 예쁜데 현실 들어가면 바로 삐걱댐.`,
-  (arena: Arena) => `${arena.optionA} 고른 사람들 욕할 게 아님. 솔직히 다들 마음속으론 이 계산 한 번씩 해봤잖아.`,
-  (arena: Arena) => `${arena.optionB}? 그거는 댓글로 볼 때만 멋있음. 실제 상황이면 ${arena.optionA}가 덜 후회함.`,
-  (arena: Arena) => `${arena.optionA}가 정답까진 몰라도 생존률은 높음. 커뮤니티에서만 센 척하면 안 됨.`,
-  (arena: Arena) => `${arena.optionA} 싫다는 사람도 막상 자기 일 되면 조용히 이쪽 누를 듯.`,
-  (arena: Arena) => `여기서 ${arena.optionA} 안 고르면 나중에 침대에서 계속 생각남. 그게 제일 무서움.`,
-  (arena: Arena) => `${arena.optionA}는 재미없어 보여도 뒤탈이 적음. 뒤탈 적은 게 생각보다 큰 능력임.`,
+  (arena: Arena) => `${arena.optionA}. 말 길게 할수록 지는 주제임. 그냥 이쪽이 덜 피곤함.`,
+  (arena: Arena) => `난 ${arena.optionA}. ${arena.optionB} 고르면 나중에 혼자 이불킥할 그림이 보임.`,
+  (arena: Arena) => `${arena.optionA}는 재미없어 보여도 후회가 적음. 후회 적은 게 은근 최강임.`,
+  (arena: Arena) => `${arena.optionB} 좋아 보이는 건 인정. 근데 내 돈, 내 시간 걸리면 ${arena.optionA} 누름.`,
+  (arena: Arena) => `${arena.optionA} 싫다던 사람도 자기 차례 오면 표정 바로 바뀔 듯.`,
+  (arena: Arena) => `${arena.optionA}는 드립 빼고 봐도 버틸 만함. 그게 생각보다 큼.`,
+  (arena: Arena) => `${arena.optionA} 안 고르면 하루 종일 찝찝함. 답은 이미 몸이 알고 있음.`,
+  (arena: Arena) => `${arena.optionA} 쪽은 최소한 나중에 남 탓은 안 하게 됨.`,
+  (arena: Arena) => `${arena.optionA}는 안전벨트 느낌이고 ${arena.optionB}는 창문 열고 달리는 느낌임.`,
+  (arena: Arena) => `${arena.optionA} 편 든다. 이유? 끝나고 잠은 잘 올 것 같아서.`,
 ];
 
 const generatedBComments = [
-  (arena: Arena) => `${arena.optionB}지. ${arena.optionA}는 첫 장면만 보고 고르는 느낌이라 뒤가 너무 불안함.`,
-  (arena: Arena) => `나는 ${arena.optionB}. 댓글창에서 세 보이는 선택이 꼭 현실에서도 센 건 아님.`,
-  (arena: Arena) => `${arena.optionA} 고르면 처음엔 시원한데, 나중에 계산서가 돌아옴. 그래서 ${arena.optionB}.`,
-  (arena: Arena) => `${arena.optionB}가 덜 화려해도 오래 감. 사람들 이걸 너무 만만하게 봄.`,
-  (arena: Arena) => `솔직히 ${arena.optionA}는 밈으로는 좋은데 실전이면 ${arena.optionB}가 맞음.`,
-  (arena: Arena) => `${arena.optionB} 편 든다. 반박하려면 진짜 자기 일이어도 ${arena.optionA} 누를 수 있는지부터 말해야 함.`,
-  (arena: Arena) => `${arena.optionA}는 기세고 ${arena.optionB}는 현실임. 기세로 월요일을 못 버팀.`,
-  (arena: Arena) => `${arena.optionB} 무시하는 사람들 특: 막상 상황 오면 제일 먼저 흔들림.`,
+  (arena: Arena) => `${arena.optionB}지. ${arena.optionA}는 듣자마자 솔깃한데 뒷맛이 너무 셈.`,
+  (arena: Arena) => `나는 ${arena.optionB}. 커뮤니티에선 조용한 선택이 실제론 제일 세더라.`,
+  (arena: Arena) => `${arena.optionA} 고르면 순간은 시원함. 근데 다음날의 내가 욕할 듯.`,
+  (arena: Arena) => `${arena.optionB}가 덜 화려해도 오래 감. 오래 가는 쪽이 결국 이김.`,
+  (arena: Arena) => `솔직히 ${arena.optionA}는 밈으로 좋고, ${arena.optionB}는 생활로 좋음.`,
+  (arena: Arena) => `${arena.optionB} 편. 이건 멋보다 멘탈 관리 문제임.`,
+  (arena: Arena) => `${arena.optionA}는 박수 받고 끝, ${arena.optionB}는 다음 주까지 살아남음.`,
+  (arena: Arena) => `${arena.optionB} 무시하면 꼭 나중에 그 선택지가 생각남.`,
+  (arena: Arena) => `${arena.optionB}는 소리 없이 강한 타입임. 막상 골라보면 티 남.`,
+  (arena: Arena) => `${arena.optionB} 쪽이 덜 자극적이라 그렇지, 실제론 이게 더 무서움.`,
 ];
 
 const getGeneratedPair = (arena: Arena): SamplePair => {
