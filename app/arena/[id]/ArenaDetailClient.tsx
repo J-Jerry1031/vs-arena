@@ -24,6 +24,13 @@ type ArenaDetailClientProps = {
 };
 
 type CommentTab = "new" | "popular" | "A" | "B";
+type LocalReaction = "fact" | "stretch" | "knockout" | "funny" | "meme";
+type MyParticipation = {
+  arenaId: number;
+  selectedSide: Side;
+  commentIds: number[];
+  lastVisitedAt: string;
+};
 
 const commentTabLabels: Record<CommentTab, string> = {
   new: "최신 댓글",
@@ -46,6 +53,28 @@ const SIDE_B_TONE = {
   solid: "bg-[#2D6A9F] text-white",
 };
 const ACCENT_TONE = "border-[#E7B933]/45 bg-[#E7B933]/12 text-[#F0D77A]";
+const nicknameSeeds = [
+  "오타니거리조절러",
+  "은가누펀치감별사",
+  "월300안정파",
+  "로또인생리셋러",
+  "칼퇴수호자",
+  "출근혐오자",
+  "카톡읽씹분석가",
+  "배달비저격수",
+  "댓글잠복러",
+  "민심감별사",
+];
+const reactionButtons: { type: LocalReaction; label: string }[] = [
+  { type: "fact", label: "인정" },
+  { type: "stretch", label: "개소리" },
+  { type: "knockout", label: "반박마려움" },
+  { type: "funny", label: "웃김" },
+  { type: "meme", label: "논리승" },
+];
+
+const generateNickname = () =>
+  nicknameSeeds[Math.floor(Math.random() * nicknameSeeds.length)];
 
 const getDetailWarMetrics = (arena: Arena, comments: ArenaComment[]) => {
   const stats = getArenaStats(arena, comments);
@@ -58,9 +87,9 @@ const getDetailWarMetrics = (arena: Arena, comments: ArenaComment[]) => {
   return {
     ...stats,
     gap: Math.abs(stats.aPercent - stats.bPercent),
-    displayComments: stats.commentCount * 76 + Math.round(arena.heat * 1.7),
-    recentTenComments: Math.max(8, Math.round(arena.heat / 7 + stats.commentCount * 3)),
-    recentHourVotes: Math.max(64, Math.round(arena.spectators / 48 + arena.heat * 2)),
+    displayComments: stats.displayCommentCount,
+    recentTenComments: stats.recentComments,
+    recentHourVotes: stats.recentVotes,
     reactionScore,
   };
 };
@@ -69,7 +98,7 @@ const getDetailHotBadges = (arena: Arena, comments: ArenaComment[]) => {
   const metrics = getDetailWarMetrics(arena, comments);
   const badges: { label: string; tone: string }[] = [];
 
-  if (metrics.displayComments >= 180) {
+  if (metrics.displayComments >= 45) {
     badges.push({ label: "HOT", tone: "bg-[#A53A4A] text-white" });
   }
 
@@ -81,7 +110,7 @@ const getDetailHotBadges = (arena: Arena, comments: ArenaComment[]) => {
     badges.push({ label: "논란", tone: "bg-[#E7B933] text-black" });
   }
 
-  if (metrics.recentTenComments >= 18) {
+  if (metrics.recentTenComments >= 9) {
     badges.push({ label: "댓글폭발", tone: "border border-[#E7B933]/45 bg-[#E7B933]/12 text-[#F0D77A]" });
   }
 
@@ -100,11 +129,13 @@ export default function ArenaDetailClient({
   const [sortType, setSortType] = useState<SortType>("new");
   const [commentTab, setCommentTab] = useState<CommentTab>("new");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
-  const [nickname, setNickname] = useState("익명의 논객");
+  const [votedSide, setVotedSide] = useState<Side | null>(null);
+  const [nickname, setNickname] = useState("");
   const [draft, setDraft] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [likedCommentIds, setLikedCommentIds] = useState<Set<number>>(new Set());
   const [reactedKeys, setReactedKeys] = useState<Set<string>>(new Set());
+  const [freshCommentIds, setFreshCommentIds] = useState<Set<number>>(new Set());
   const [lastCommentAt, setLastCommentAt] = useState(0);
   const [abuseNotice, setAbuseNotice] = useState("");
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -126,15 +157,32 @@ export default function ArenaDetailClient({
     selectedSide === "A"
       ? `${opposingOption} 쪽 말 안 먹히는 이유 한 방 먹여주세요.`
       : `${opposingOption} 쪽 주장에 반박해보세요.`;
+  const warSummary =
+    stats.gap <= 5
+      ? "거의 반반입니다. 댓글 한 방에 분위기 뒤집힐 수 있습니다."
+      : stats.aPercent > stats.bPercent
+        ? `${arena.optionA} 진영이 앞서는 중. ${arena.optionB} 쪽 반박이 필요한 상황입니다.`
+        : `${arena.optionB} 진영이 앞서는 중. ${arena.optionA} 쪽이 밀리는 중입니다.`;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     const liked = window.localStorage.getItem("vs-arena-liked-comments");
     const reacted = window.localStorage.getItem("vs-arena-reacted-keys");
     const lastAt = window.localStorage.getItem(`vs-arena-last-comment-${arena.id}`);
+    const savedNickname = window.localStorage.getItem("vs_arena_nickname");
+    const savedVote = window.localStorage.getItem(`vs_arena_vote_${arena.id}`) as Side | null;
 
     window.setTimeout(() => {
       setNow(Date.now());
+      const nextNickname = savedNickname || generateNickname();
+
+      setNickname(nextNickname);
+      window.localStorage.setItem("vs_arena_nickname", nextNickname);
+
+      if (savedVote === "A" || savedVote === "B") {
+        setSelectedSide(savedVote);
+        setVotedSide(savedVote);
+      }
 
       if (liked) {
         setLikedCommentIds(new Set(JSON.parse(liked) as number[]));
@@ -151,6 +199,62 @@ export default function ArenaDetailClient({
 
     return () => window.clearInterval(timer);
   }, [arena.id]);
+
+  const persistParticipation = (side: Side, commentId?: number) => {
+    const saved = window.localStorage.getItem("vs_arena_participation");
+    let records: MyParticipation[] = [];
+
+    try {
+      records = saved ? (JSON.parse(saved) as MyParticipation[]) : [];
+    } catch {
+      records = [];
+    }
+
+    const existing = records.find((item) => item.arenaId === arena.id);
+    const nextRecord: MyParticipation = existing
+      ? {
+          ...existing,
+          selectedSide: side,
+          commentIds: commentId
+            ? [...new Set([...existing.commentIds, commentId])]
+            : existing.commentIds,
+          lastVisitedAt: new Date().toISOString(),
+        }
+      : {
+          arenaId: arena.id,
+          selectedSide: side,
+          commentIds: commentId ? [commentId] : [],
+          lastVisitedAt: new Date().toISOString(),
+        };
+
+    window.localStorage.setItem(
+      "vs_arena_participation",
+      JSON.stringify([
+        nextRecord,
+        ...records.filter((item) => item.arenaId !== arena.id),
+      ].slice(0, 12))
+    );
+  };
+
+  const voteForSide = (side: Side) => {
+    if (!canJoinArena) return;
+
+    setSelectedSide(side);
+    setVotedSide(side);
+    setIsComposerOpen(true);
+    window.localStorage.setItem(`vs_arena_vote_${arena.id}`, side);
+    persistParticipation(side);
+    setAbuseNotice(
+      `참전 완료. 당신은 ${side === "A" ? arena.optionA : arena.optionB} 진영에 섰습니다.`
+    );
+  };
+
+  const changeNickname = () => {
+    const nextNickname = generateNickname();
+
+    setNickname(nextNickname);
+    window.localStorage.setItem("vs_arena_nickname", nextNickname);
+  };
 
   const sortedComments = useMemo(() => {
     const list = [...arenaComments];
@@ -203,9 +307,10 @@ export default function ArenaDetailClient({
       return;
     }
 
+    const commentId = Date.now();
     setComments((current) => [
       {
-        id: Date.now(),
+        id: commentId,
         arenaId: arena.id,
         side: selectedSide,
         nickname: nickname.trim() || "익명의 논객",
@@ -216,6 +321,9 @@ export default function ArenaDetailClient({
       },
       ...current,
     ]);
+    setFreshCommentIds((current) => new Set(current).add(commentId));
+    setVotedSide(selectedSide);
+    persistParticipation(selectedSide, commentId);
     const submittedAt = Date.now();
     setLastCommentAt(submittedAt);
     window.localStorage.setItem(
@@ -248,7 +356,7 @@ export default function ArenaDetailClient({
     });
   };
 
-  const reactToComment = (id: number, reaction: "knockout" | "stretch" | "funny") => {
+  const reactToComment = (id: number, reaction: LocalReaction) => {
     const key = `${id}:${reaction}`;
 
     if (reactedKeys.has(key)) {
@@ -286,6 +394,7 @@ export default function ArenaDetailClient({
       comment.text.length > 42 ? `${comment.text.slice(0, 42)}...` : comment.text;
 
     setSelectedSide(replySide);
+    setVotedSide(replySide);
     setDraft(
       `"${shortQuote}" 이 말에 답글: `
     );
@@ -316,6 +425,7 @@ export default function ArenaDetailClient({
     const dislikes = Math.max(0, Math.floor((getReactionTotal(comment) - comment.likes / 3) / 2));
     const replies = Math.max(0, Math.floor((comment.likes + getReactionTotal(comment)) / 18));
     const isTopComment = comment.likes >= 90 && index === 0;
+    const isFreshComment = freshCommentIds.has(comment.id);
     const timeLabel =
       comment.createdAt > 1_000_000_000_000
         ? "방금 전"
@@ -343,6 +453,11 @@ export default function ArenaDetailClient({
                   상위 댓글
                 </span>
               ) : null}
+              {isFreshComment ? (
+                <span className="border border-[#E7B933]/45 bg-[#E7B933] px-2 py-1 text-xs font-black text-black">
+                  방금 참전함
+                </span>
+              ) : null}
               <span className="text-sm font-bold text-zinc-300">
                 {comment.nickname}
               </span>
@@ -360,19 +475,24 @@ export default function ArenaDetailClient({
             </div>
           </button>
 
-          <div className="grid grid-cols-3 gap-1 text-xs font-black">
-            <button
-              onClick={() => likeComment(comment.id)}
-              className={`border px-2 py-2 transition ${ACCENT_TONE} hover:bg-[#E7B933] hover:text-black`}
-            >
-              공감
-            </button>
-            <button
-              onClick={() => reactToComment(comment.id, "stretch")}
-              className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-300 transition hover:border-white/30"
-            >
-              비공감
-            </button>
+          <div className="grid grid-cols-3 gap-1 text-xs font-black sm:grid-cols-2">
+            {reactionButtons.map((reaction) => (
+              <button
+                key={reaction.type}
+                onClick={() =>
+                  reaction.type === "fact"
+                    ? likeComment(comment.id)
+                    : reactToComment(comment.id, reaction.type)
+                }
+                className={`border px-2 py-2 transition ${
+                  reaction.type === "fact"
+                    ? `${ACCENT_TONE} hover:bg-[#E7B933] hover:text-black`
+                    : "border-white/10 bg-black/25 text-zinc-300 hover:border-white/30"
+                }`}
+              >
+                {reaction.label}
+              </button>
+            ))}
             <button
               onClick={() => prepareReply(comment)}
               className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-300 transition hover:border-[#E7B933]/60 hover:text-[#F0D77A]"
@@ -387,28 +507,25 @@ export default function ArenaDetailClient({
             <p className="whitespace-pre-wrap leading-relaxed text-zinc-100">
               {comment.text}
             </p>
-            <div className="mt-4 grid grid-cols-3 gap-1">
-              <button
-                onClick={() => likeComment(comment.id)}
-                className={`min-h-10 border px-2 text-xs font-black transition ${ACCENT_TONE} hover:bg-[#E7B933] hover:text-black`}
-              >
-                <span className="block">공감</span>
-                <span className="block text-[10px] opacity-75">{comment.likes}</span>
-              </button>
-              <button
-                onClick={() => reactToComment(comment.id, "funny")}
-                className="min-h-10 border border-white/10 bg-black/25 px-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
-              >
-                <span className="block">웃김</span>
-                <span className="block text-[10px] opacity-75">{comment.reactions.funny}</span>
-              </button>
-              <button
-                onClick={() => reactToComment(comment.id, "knockout")}
-                className="min-h-10 border border-white/10 bg-black/25 px-2 text-xs font-black text-zinc-400 transition hover:border-[#A53A4A]/60 hover:text-[#F0A0AA]"
-              >
-                <span className="block">반박하고싶음</span>
-                <span className="block text-[10px] opacity-75">{comment.reactions.knockout}</span>
-              </button>
+            <div className="mt-4 grid grid-cols-2 gap-1 sm:grid-cols-5">
+              {reactionButtons.map((reaction) => (
+                <button
+                  key={reaction.type}
+                  onClick={() =>
+                    reaction.type === "fact"
+                      ? likeComment(comment.id)
+                      : reactToComment(comment.id, reaction.type)
+                  }
+                  className="min-h-10 border border-white/10 bg-black/25 px-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
+                >
+                  <span className="block">{reaction.label}</span>
+                  <span className="block text-[10px] opacity-75">
+                    {reaction.type === "fact"
+                      ? comment.likes
+                      : comment.reactions[reaction.type]}
+                  </span>
+                </button>
+              ))}
             </div>
             <button
               onClick={() => toggleExpanded(comment.id)}
@@ -513,6 +630,10 @@ export default function ArenaDetailClient({
         <p className="mt-4 max-w-3xl text-sm font-bold leading-relaxed text-zinc-500">
           {arena.openingLine}
         </p>
+        <div className={`mt-4 border px-4 py-3 text-sm font-black leading-relaxed ${ACCENT_TONE}`}>
+          전황 요약: {warSummary} 최근 10분 댓글은 {stats.recentTenComments}개,
+          1시간 투표는 {stats.recentHourVotes}개 붙었습니다.
+        </div>
 
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -523,7 +644,7 @@ export default function ArenaDetailClient({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
-              onClick={() => setSelectedSide("A")}
+              onClick={() => voteForSide("A")}
               disabled={!canJoinArena}
               className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
                 selectedSide === "A"
@@ -544,7 +665,7 @@ export default function ArenaDetailClient({
             </button>
 
             <button
-              onClick={() => setSelectedSide("B")}
+              onClick={() => voteForSide("B")}
               disabled={!canJoinArena}
               className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
                 selectedSide === "B"
@@ -580,6 +701,49 @@ export default function ArenaDetailClient({
           <span>{arena.optionA} {stats.aPercent}%</span>
           <span>{arena.optionB} {stats.bPercent}%</span>
         </div>
+        {votedSide ? (
+          <div
+            id="quick-comment"
+            className="mt-5 border border-white/10 bg-black/30 p-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-sm font-black text-white">
+                  투표 완료. 이제 한마디 박아보세요.
+                </div>
+                <div className="mt-1 text-xs font-bold text-zinc-500">
+                  당신은 {votedSide === "A" ? arena.optionA : arena.optionB} 진영에 참전했습니다.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={changeNickname}
+                className="border border-white/10 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
+              >
+                닉네임 {nickname || "생성중"} · 변경
+              </button>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
+              <input
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                disabled={!canJoinArena}
+                placeholder={draftPlaceholder}
+                className="min-h-12 w-full border border-white/10 bg-black/50 px-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
+                maxLength={500}
+                aria-label="투표 후 빠른 댓글 입력"
+              />
+              <button
+                onClick={addComment}
+                disabled={!canSubmitComment}
+                aria-label="투표 후 빠른 한마디 던지기"
+                className="min-h-12 border border-[#E7B933] bg-[#E7B933] px-4 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
+              >
+                한마디 던지기
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {hotComment ? (
@@ -671,14 +835,21 @@ export default function ArenaDetailClient({
               maxLength={16}
               aria-label="닉네임"
             />
+            <button
+              type="button"
+              onClick={changeNickname}
+              className="mt-2 w-full border border-white/10 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
+            >
+              오늘의 닉네임 변경
+            </button>
             <div className="mt-3 text-xs font-black text-zinc-500">
               너는 누구 편?
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              {(["A", "B"] as Side[]).map((side) => (
+            {(["A", "B"] as Side[]).map((side) => (
                 <button
                   key={side}
-                  onClick={() => setSelectedSide(side)}
+                  onClick={() => voteForSide(side)}
                   disabled={!canJoinArena}
                   className={`border px-2 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     selectedSide === side
@@ -725,7 +896,7 @@ export default function ArenaDetailClient({
               {canJoinArena
                 ? cooldownLeftMs > 0
                   ? "쿨다운 중"
-                  : "작성"
+                  : "한마디 던지기"
                 : "구경 중"}
             </button>
           </div>
@@ -795,7 +966,7 @@ export default function ArenaDetailClient({
               <button
                 key={side}
                 type="button"
-                onClick={() => setSelectedSide(side)}
+                onClick={() => voteForSide(side)}
                 disabled={!canJoinArena}
                 className={`min-h-10 border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   selectedSide === side
@@ -824,7 +995,7 @@ export default function ArenaDetailClient({
             disabled={!canSubmitComment}
             className="min-h-10 border border-[#E7B933] bg-[#E7B933] px-4 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
           >
-            등록
+            댓글쓰기
           </button>
         </div>
       </div>

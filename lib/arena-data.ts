@@ -35,19 +35,19 @@ export const statusMeta: Record<
   main: {
     label: "메인 경기",
     section: "오늘의 메인",
-    tone: "border-amber-300/40 bg-amber-300/10 text-amber-200",
+    tone: "border-[#E7B933]/40 bg-[#E7B933]/10 text-[#F0D77A]",
     canJoin: true,
   },
   live: {
     label: "진행 중",
     section: "진행 중",
-    tone: "border-cyan-300/40 bg-cyan-300/10 text-cyan-200",
+    tone: "border-[#2D6A9F]/40 bg-[#2D6A9F]/10 text-[#8EC6F2]",
     canJoin: true,
   },
   upcoming: {
     label: "곧 시작",
     section: "곧 시작",
-    tone: "border-violet-300/40 bg-violet-300/10 text-violet-200",
+    tone: "border-[#A53A4A]/40 bg-[#A53A4A]/10 text-[#F0A0AA]",
     canJoin: false,
   },
   closed: {
@@ -63,29 +63,29 @@ export const reactionMeta: Record<
   { label: string; badge: string; active: string }
 > = {
   knockout: {
-    label: "논파",
-    badge: "논파각",
-    active: "border-rose-300 bg-rose-300 text-black",
+    label: "반박마려움",
+    badge: "반박마려움",
+    active: "border-[#A53A4A] bg-[#A53A4A] text-white",
   },
   meme: {
-    label: "드립",
-    badge: "드립왕",
-    active: "border-cyan-300 bg-cyan-300 text-black",
+    label: "논리승",
+    badge: "논리승",
+    active: "border-[#E7B933] bg-[#E7B933] text-black",
   },
   stretch: {
-    label: "억지",
-    badge: "억지주의보",
-    active: "border-violet-300 bg-violet-300 text-black",
+    label: "개소리",
+    badge: "개소리",
+    active: "border-[#A53A4A] bg-[#A53A4A] text-white",
   },
   fact: {
-    label: "팩트",
-    badge: "팩트폭격",
-    active: "border-amber-300 bg-amber-300 text-black",
+    label: "인정",
+    badge: "인정",
+    active: "border-[#E7B933] bg-[#E7B933] text-black",
   },
   funny: {
     label: "웃김",
     badge: "터짐",
-    active: "border-lime-300 bg-lime-300 text-black",
+    active: "border-[#2D6A9F] bg-[#2D6A9F] text-white",
   },
 };
 
@@ -518,7 +518,18 @@ const extraArenas: Arena[] = [
   createArena(112, "죽음이 있어야 삶이 의미 있다 vs 없어도 의미 있다", "죽음 필요", "의미 있음", "철학", "유한성과 의미를 두고 벌어지는 무거운 클래식", "깊은 댓글을 유도하는 철학 카테고리 마감 카드."),
 ];
 
-export const arenas: Arena[] = [...baseArenas, ...extraArenas];
+export const seededNumber = (seed: number, min: number, max: number) => {
+  const range = max - min + 1;
+  const mixed = Math.abs(Math.sin(seed * 999.91) * 10000);
+
+  return min + (Math.floor(mixed) % range);
+};
+
+export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => ({
+  ...arena,
+  heat: seededNumber(arena.id * 5 + arena.heat, 58, 98),
+  spectators: seededNumber(arena.id * 13 + arena.heat, 20, 400),
+}));
 
 type SamplePair = {
   a: [string, string, number, Record<ReactionType, number>];
@@ -627,20 +638,52 @@ const generatedReactions = (
   funny: 2 + ((seed * 5 + sideOffset) % 14),
 });
 
-const getGeneratedPair = (arena: Arena): SamplePair => ({
-  a: [
-    "A진영선봉",
-    `${arena.optionA} 쪽이 더 말이 됨. ${arena.openingLine} 결국 이 주제는 감정이 아니라 기준을 어디에 두느냐 싸움임.`,
-    24 + (arena.id % 58),
-    generatedReactions(arena.id, 1),
-  ],
-  b: [
-    "B진영반격",
-    `${arena.optionB} 쪽도 만만치 않음. 겉으로는 쉬워 보여도 실제 상황 들어가면 ${arena.optionA}보다 변수가 훨씬 많아짐.`,
-    22 + ((arena.id * 3) % 61),
-    generatedReactions(arena.id, 2),
-  ],
-});
+const generatedNicknames = [
+  "현실파견병",
+  "댓글잠복러",
+  "한줄저격수",
+  "민심감별사",
+  "반박대기조",
+  "퇴근후참전",
+  "팩트보다감정",
+  "구경하다빡침",
+];
+
+const generatedAComments = [
+  (arena: Arena) => `${arena.optionA} 고르는 게 이상한 게 아니라, 이 상황에서 ${arena.optionB}가 너무 낭만론임.`,
+  (arena: Arena) => `${arena.optionA}. 길게 볼 것도 없음. 실제로 닥치면 다들 이쪽으로 손 감.`,
+  (arena: Arena) => `${arena.optionB} 말은 듣기엔 좋은데 현실 들어가면 바로 무너짐. ${arena.optionA}가 덜 예쁘고 더 맞는 답임.`,
+  (arena: Arena) => `${arena.openingLine} 이 문장만 봐도 ${arena.optionA} 쪽이 더 살아있는 선택지임.`,
+  (arena: Arena) => `${arena.optionA} 반대하는 사람들 대부분 상황을 너무 깨끗하게 상상함. 현실은 늘 지저분해서 이쪽이 맞음.`,
+];
+
+const generatedBComments = [
+  (arena: Arena) => `${arena.optionA}는 말은 센데 막상 해보면 구멍이 큼. 난 ${arena.optionB}가 오래 버티는 쪽이라고 봄.`,
+  (arena: Arena) => `${arena.optionB}가 재미없어 보여도 결국 실전형임. 댓글에서만 센 선택지는 오래 못 감.`,
+  (arena: Arena) => `${arena.optionA} 쪽 논리는 항상 첫 장면까지만 있음. 두 번째 장면부터는 ${arena.optionB}가 맞아짐.`,
+  (arena: Arena) => `이건 감성 빼고 보면 ${arena.optionB}. ${arena.optionA}는 순간 뽕은 있는데 후폭풍 계산이 안 됨.`,
+  (arena: Arena) => `${arena.optionB} 편 든다. 반박하려면 실제로 이 상황 와도 ${arena.optionA} 고를 수 있는지부터 말해야 함.`,
+];
+
+const getGeneratedPair = (arena: Arena): SamplePair => {
+  const aIndex = seededNumber(arena.id * 7, 0, generatedAComments.length - 1);
+  const bIndex = seededNumber(arena.id * 11, 0, generatedBComments.length - 1);
+
+  return {
+    a: [
+      generatedNicknames[seededNumber(arena.id * 3, 0, generatedNicknames.length - 1)],
+      generatedAComments[aIndex](arena),
+      8 + (arena.id % 34),
+      generatedReactions(arena.id, 1),
+    ],
+    b: [
+      generatedNicknames[seededNumber(arena.id * 5 + 1, 0, generatedNicknames.length - 1)],
+      generatedBComments[bIndex](arena),
+      7 + ((arena.id * 3) % 36),
+      generatedReactions(arena.id, 2),
+    ],
+  };
+};
 
 export const initialComments: ArenaComment[] = arenas.flatMap(
   (arena, index) => {
@@ -703,20 +746,40 @@ export const getArenaStats = (
   comments: ArenaComment[] = initialComments
 ) => {
   const targetComments = getArenaComments(arena.id, comments);
-  const a = targetComments.filter((comment) => comment.side === "A").length;
-  const b = targetComments.filter((comment) => comment.side === "B").length;
-  const total = a + b;
-  const aPercent = total === 0 ? 50 : Math.round((a / total) * 100);
+  const localA = Math.max(
+    0,
+    targetComments.filter((comment) => comment.side === "A").length -
+      initialComments.filter(
+        (comment) => comment.arenaId === arena.id && comment.side === "A"
+      ).length
+  );
+  const localB = Math.max(
+    0,
+    targetComments.filter((comment) => comment.side === "B").length -
+      initialComments.filter(
+        (comment) => comment.arenaId === arena.id && comment.side === "B"
+      ).length
+  );
+  const seedPercents = [51, 67, 82, 46, 73, 58, 39, 61, 55, 44, 76, 63, 49, 69, 35];
+  const seededPercent = seedPercents[arena.id % seedPercents.length];
+  const aPercent = Math.min(86, Math.max(14, seededPercent + localA * 2 - localB * 2));
   const reactionScore = targetComments.reduce(
     (sum, comment) => sum + getCommentScore(comment),
     0
   );
-  const heatScore = arena.heat * 2 + arena.spectators / 200 + reactionScore;
+  const displayCommentCount = seededNumber(arena.id * 17 + arena.heat, 5, 80);
+  const recentComments = seededNumber(arena.id * 19 + arena.heat, 1, 15);
+  const recentVotes = seededNumber(arena.id * 23 + arena.heat, 12, 96);
+  const heatScore =
+    arena.heat * 2 + arena.spectators / 20 + displayCommentCount * 5 + reactionScore;
 
   return {
     aPercent,
     bPercent: 100 - aPercent,
     commentCount: targetComments.length,
+    displayCommentCount,
+    recentComments,
+    recentVotes,
     heatScore,
     reactionScore,
   };
@@ -732,7 +795,7 @@ export const getArenaBadge = (
   if (arena.status === "closed") return "명경기 보관";
   if (diff <= 10) return "박빙";
   if (arena.heat >= 98) return "지금 제일 불탐";
-  if (stats.commentCount >= 3) return "댓글 과열";
+  if (stats.displayCommentCount >= 45) return "댓글 과열";
   if (stats.aPercent >= 70) return "A진영 폭주";
   if (stats.bPercent >= 70) return "B진영 반격";
   if (arena.status === "upcoming") return "예열 중";

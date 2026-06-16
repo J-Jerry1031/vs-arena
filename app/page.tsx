@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   type Arena,
   type ArenaComment,
+  type Side,
   arenas,
   getArenaHotComment,
   getArenaStats,
@@ -13,19 +15,39 @@ import {
   statusMeta,
 } from "@/lib/arena-data";
 
+type CategoryTab = {
+  id: string;
+  label: string;
+  categories: string[];
+};
+
+type MyParticipation = {
+  arenaId: number;
+  selectedSide: Side;
+  commentIds: number[];
+  lastVisitedAt: string;
+};
+
+const categoryTabs: CategoryTab[] = [
+  { id: "all", label: "전체", categories: [] },
+  { id: "relationship", label: "연애/인간관계", categories: ["연애"] },
+  { id: "money", label: "돈/현실", categories: ["돈", "선택지옥"] },
+  { id: "work", label: "회사/일상", categories: ["직장", "생활"] },
+  { id: "fantasy", label: "상상배틀", categories: ["상상배틀"] },
+  { id: "debate", label: "철학/논쟁", categories: ["철학", "전통논쟁"] },
+  { id: "ai", label: "AI/미래", categories: ["AI"] },
+];
+
 const getWarMetrics = (arena: Arena) => {
   const stats = getArenaStats(arena, initialComments);
   const gap = Math.abs(stats.aPercent - stats.bPercent);
-  const amplifiedComments = stats.commentCount * 76 + Math.round(arena.heat * 1.7);
-  const recentTenComments = Math.max(8, Math.round(arena.heat / 7 + stats.commentCount * 3));
-  const recentHourVotes = Math.max(64, Math.round(arena.spectators / 48 + arena.heat * 2));
 
   return {
     ...stats,
     gap,
-    displayComments: amplifiedComments,
-    recentTenComments,
-    recentHourVotes,
+    displayComments: stats.displayCommentCount,
+    recentTenComments: stats.recentComments,
+    recentHourVotes: stats.recentVotes,
   };
 };
 
@@ -36,7 +58,7 @@ const getHotBadges = (arena: Arena) => {
     .reduce((sum, comment) => sum + getReactionTotal(comment), 0);
   const badges: { label: string; tone: string }[] = [];
 
-  if (metrics.displayComments >= 180) {
+  if (metrics.displayComments >= 45) {
     badges.push({ label: "HOT", tone: "bg-[#A53A4A] text-white" });
   }
 
@@ -48,7 +70,7 @@ const getHotBadges = (arena: Arena) => {
     badges.push({ label: "논란", tone: "bg-[#E7B933] text-black" });
   }
 
-  if (metrics.recentTenComments >= 18) {
+  if (metrics.recentTenComments >= 9) {
     badges.push({ label: "댓글폭발", tone: "border border-[#E7B933]/45 bg-[#E7B933]/12 text-[#F0D77A]" });
   }
 
@@ -56,7 +78,7 @@ const getHotBadges = (arena: Arena) => {
     badges.push({ label: "급상승", tone: "border border-white/10 bg-white/[0.04] text-zinc-300" });
   }
 
-  if (metrics.heatScore >= 650) {
+  if (metrics.heatScore >= 460) {
     badges.push({ label: "인기", tone: "bg-white text-black" });
   }
 
@@ -143,7 +165,7 @@ const BattleCard = ({
 
       <div className="mt-2 flex items-center justify-between text-[11px] font-black text-zinc-500">
         <span>{metrics.aPercent}:{metrics.bPercent}</span>
-        <span>최근 10분 +{metrics.recentTenComments}</span>
+        <span>지금 {arena.spectators}명 구경중</span>
       </div>
 
       <div className="mt-3 space-y-1">
@@ -160,35 +182,57 @@ const BattleCard = ({
       <div className="mt-4 bg-[#E7B933] px-4 py-3 text-center text-sm font-black text-black transition group-hover:bg-[#F0D77A]">
         {cta}
       </div>
+      <div className="mt-2 text-center text-[11px] font-black text-zinc-600">
+        댓글 {metrics.displayComments} · 최근 10분 {metrics.recentTenComments}개 추가
+      </div>
     </Link>
   );
 };
 
 export default function Home() {
-  const liveArenas = arenas.filter((arena) => statusMeta[arena.status].canJoin);
-  const totalSpectators = liveArenas.reduce(
-    (sum, arena) => sum + arena.spectators,
-    0
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [participations, setParticipations] = useState<MyParticipation[]>([]);
+  const activeTab =
+    categoryTabs.find((tab) => tab.id === activeCategory) ?? categoryTabs[0];
+  const filteredArenas = useMemo(
+    () =>
+      activeTab.id === "all"
+        ? arenas
+        : arenas.filter((arena) => activeTab.categories.includes(arena.category)),
+    [activeTab]
   );
-  const allRankedArenas = [...arenas].sort(
+  const liveArenas = filteredArenas.filter((arena) => statusMeta[arena.status].canJoin);
+  const totalSpectators = Math.min(
+    900,
+    Math.max(300, 300 + liveArenas.reduce((sum, arena) => sum + arena.spectators, 0) % 601)
+  );
+  const allRankedArenas = [...filteredArenas].sort(
     (a, b) => getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
   );
   const mainArena = allRankedArenas.find((arena) => statusMeta[arena.status].canJoin) ?? allRankedArenas[0];
   const mainMetrics = getWarMetrics(mainArena);
   const mainComments = getPopularComments(mainArena.id, 3);
   const mainHotComment = getArenaHotComment(mainArena.id, initialComments);
-  const closeArenas = [...arenas]
+  const closeArenas = [...filteredArenas]
     .filter((arena) => statusMeta[arena.status].canJoin && arena.id !== mainArena.id)
     .sort((a, b) => getWarMetrics(a).gap - getWarMetrics(b).gap)
     .slice(0, 5);
-  const commentBoomArenas = [...arenas]
+  const commentBoomArenas = [...filteredArenas]
     .filter((arena) => arena.id !== mainArena.id)
     .sort((a, b) => getWarMetrics(b).displayComments - getWarMetrics(a).displayComments)
     .slice(0, 5);
-  const latestArenas = [...arenas]
+  const latestArenas = [...filteredArenas]
     .filter((arena) => arena.id !== mainArena.id)
     .sort((a, b) => b.id - a.id)
     .slice(0, 5);
+  const myArenas = participations
+    .map((item) => {
+      const arena = arenas.find((target) => target.id === item.arenaId);
+
+      return arena ? { arena, item, metrics: getWarMetrics(arena) } : null;
+    })
+    .filter((item): item is { arena: Arena; item: MyParticipation; metrics: ReturnType<typeof getWarMetrics> } => Boolean(item))
+    .slice(0, 3);
   const battleSections = [
     {
       title: "⚔️ 박빙 TOP5",
@@ -209,6 +253,20 @@ export default function Home() {
       cta: "이 판에 끼어들기",
     },
   ];
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      const saved = window.localStorage.getItem("vs_arena_participation");
+
+      if (!saved) return;
+
+      try {
+        setParticipations(JSON.parse(saved) as MyParticipation[]);
+      } catch {
+        setParticipations([]);
+      }
+    }, 0);
+  }, []);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#08090d] text-zinc-100">
@@ -259,6 +317,60 @@ export default function Home() {
           ))}
         </section>
 
+        <nav className="flex gap-2 overflow-x-auto border-b border-white/10 py-3">
+          {categoryTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveCategory(tab.id)}
+              className={`shrink-0 border px-4 py-2 text-xs font-black transition ${
+                activeCategory === tab.id
+                  ? "border-[#E7B933] bg-[#E7B933] text-black"
+                  : "border-white/10 bg-white/[0.035] text-zinc-400 hover:border-white/25 hover:text-zinc-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        {myArenas.length > 0 ? (
+          <section className="border-b border-white/10 py-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-black text-white">내가 참전한 판</h2>
+              <span className="text-xs font-black text-zinc-600">
+                다시 들어가서 반박 확인
+              </span>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              {myArenas.map(({ arena, item, metrics }) => {
+                const myPercent = item.selectedSide === "A" ? metrics.aPercent : metrics.bPercent;
+                const isWinning =
+                  item.selectedSide === "A"
+                    ? metrics.aPercent >= metrics.bPercent
+                    : metrics.bPercent >= metrics.aPercent;
+
+                return (
+                  <Link
+                    key={arena.id}
+                    href={`/arena/${arena.id}`}
+                    className="border border-white/10 bg-white/[0.035] p-3 transition hover:border-[#E7B933]/45"
+                  >
+                    <div className="line-clamp-1 text-sm font-black text-white">
+                      {arena.title}
+                    </div>
+                    <div className="mt-2 text-xs font-bold text-zinc-500">
+                      내 진영 {item.selectedSide} · 현재 {myPercent}%로{" "}
+                      {isWinning ? "앞서는 중" : "밀리는 중"} · 반박{" "}
+                      {Math.max(1, item.commentIds.length + metrics.recentTenComments % 5)}개
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         <section className="border-b border-white/10 py-4 sm:py-5">
           <Link
             href={`/arena/${mainArena.id}`}
@@ -267,7 +379,7 @@ export default function Home() {
             <div className="absolute inset-x-0 top-0 h-1 bg-[#A53A4A]" />
             <div className="flex flex-wrap items-center gap-2">
               <span className="animate-pulse bg-[#A53A4A] px-3 py-1 text-xs font-black text-white">
-                🔥 지금 제일 불타는 VS
+                오늘의 불판
               </span>
               {getHotBadges(mainArena).map((badge) => (
                 <span
@@ -360,7 +472,7 @@ export default function Home() {
                 현재 {mainArena.spectators.toLocaleString()}명 구경중
               </span>
               <span className="bg-[#E7B933] px-5 py-3 text-sm font-black text-black transition group-hover:bg-[#F0D77A]">
-                한마디 박으러 가기
+                오늘의 불판 입장
               </span>
             </div>
           </Link>
