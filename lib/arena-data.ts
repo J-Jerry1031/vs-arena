@@ -12,10 +12,27 @@ export type Arena = {
   status: ArenaStatus;
   heat: number;
   spectators: number;
+  commentsCount: number;
+  recentCommentsCount: number;
+  recentVotesCount: number;
+  leftPercent: number;
+  rightPercent: number;
+  totalVotes: number;
   scheduledAt: string;
   openingLine: string;
   editorNote: string;
 };
+
+type ArenaSeed = Omit<
+  Arena,
+  | "spectators"
+  | "commentsCount"
+  | "recentCommentsCount"
+  | "recentVotesCount"
+  | "leftPercent"
+  | "rightPercent"
+  | "totalVotes"
+>;
 
 export type ArenaComment = {
   id: number;
@@ -105,7 +122,7 @@ export const emptyReactions = (): Record<ReactionType, number> => ({
   funny: 0,
 });
 
-const baseArenas: Arena[] = [
+const baseArenas: ArenaSeed[] = [
   {
     id: 1,
     title: "AI한테 고민 상담 가능하다 vs 그래도 사람한테 해야 한다",
@@ -114,7 +131,6 @@ const baseArenas: Arena[] = [
     category: "AI",
     status: "live",
     heat: 97,
-    spectators: 18420,
     scheduledAt: "오늘 21:00",
     openingLine: "위로는 잘하는데 책임은 안 져주는 존재와 인간의 정면승부",
     editorNote: "요즘 제일 많이 흔들리는 주제. 진지해져도 되고, 들켜도 웃김.",
@@ -127,7 +143,6 @@ const baseArenas: Arena[] = [
     category: "직장",
     status: "live",
     heat: 91,
-    spectators: 11280,
     scheduledAt: "진행 중",
     openingLine: "침대 옆 출근과 감시 없는 업무 사이 어딘가",
     editorNote: "직장인이라면 한 마디 안 하고 지나가기 힘든 월급 루틴 배틀.",
@@ -140,7 +155,6 @@ const baseArenas: Arena[] = [
     category: "연애",
     status: "live",
     heat: 96,
-    spectators: 20770,
     scheduledAt: "진행 중",
     openingLine: "읽씹, 안읽씹, 바쁨이라는 이름의 미스터리",
     editorNote: "연애 주제인데 모두가 갑자기 탐정이 되는 고전 떡밥.",
@@ -153,7 +167,6 @@ const baseArenas: Arena[] = [
     category: "돈",
     status: "upcoming",
     heat: 86,
-    spectators: 9040,
     scheduledAt: "내일 20:00",
     openingLine: "통장 잔고와 정신 건강이 서로 멱살 잡는 경기",
     editorNote: "댓글 쓰다 보면 본인 인생 상담으로 빠질 가능성 높음.",
@@ -166,7 +179,6 @@ const baseArenas: Arena[] = [
     category: "생활",
     status: "upcoming",
     heat: 79,
-    spectators: 6680,
     scheduledAt: "금요일 22:00",
     openingLine: "잠깐만 보려다 해 뜨는 시대의 국민 스포츠",
     editorNote: "다들 찔리니까 댓글 화력이 묘하게 잘 나오는 자기고발형 경기.",
@@ -179,7 +191,6 @@ const baseArenas: Arena[] = [
     category: "돈",
     status: "live",
     heat: 90,
-    spectators: 15330,
     scheduledAt: "진행 중",
     openingLine: "인간관계와 상상 속 20억이 만나는 순간",
     editorNote: "실제로 당첨 안 됐는데 모두가 이미 당첨자처럼 진지해지는 경기.",
@@ -192,7 +203,6 @@ const baseArenas: Arena[] = [
     category: "생활",
     status: "live",
     heat: 74,
-    spectators: 7420,
     scheduledAt: "진행 중",
     openingLine: "귀찮음의 가격은 어디까지 인정되는가",
     editorNote: "소소하지만 매일 벌어지는 자존심 싸움. 야식 시간대에 특히 강함.",
@@ -205,7 +215,6 @@ const baseArenas: Arena[] = [
     category: "AI",
     status: "upcoming",
     heat: 83,
-    spectators: 5870,
     scheduledAt: "토요일 21:00",
     openingLine: "외로움, 기술, 과몰입이 한 화면에 뜨는 미래형 떡밥",
     editorNote: "웃긴데 웃고 나면 살짝 무서워지는 쪽으로 잘 굴러갈 주제.",
@@ -218,7 +227,6 @@ const baseArenas: Arena[] = [
     category: "선택지옥",
     status: "upcoming",
     heat: 68,
-    spectators: 4210,
     scheduledAt: "일요일 14:00",
     openingLine: "생존템 두 개를 놓고 벌이는 소박한 잔혹극",
     editorNote: "가볍고 빠르게 참여 가능한 취향형 입문 경기.",
@@ -231,7 +239,6 @@ const baseArenas: Arena[] = [
     category: "연애",
     status: "upcoming",
     heat: 82,
-    spectators: 7730,
     scheduledAt: "월요일 22:00",
     openingLine: "첫 만남 5분 만에 집 가고 싶어지는 이유 월드컵",
     editorNote: "경험담이 쏟아질 확률 높음. 너무 실명성 있는 얘기는 컷.",
@@ -244,7 +251,6 @@ const baseArenas: Arena[] = [
     category: "상상배틀",
     status: "upcoming",
     heat: 93,
-    spectators: 11920,
     scheduledAt: "화요일 20:00",
     openingLine: "계산이 되는 듯하다가 갑자기 양심이 등장하는 매치업",
     editorNote: "현실 폭력보다 말도 안 되는 시뮬레이션 맛으로 굴리는 상상 경기.",
@@ -257,7 +263,6 @@ const baseArenas: Arena[] = [
     category: "생활",
     status: "closed",
     heat: 86,
-    spectators: 9820,
     scheduledAt: "어제 종료",
     openingLine: "생산성과 생활 패턴을 건 조용한 자존심 싸움",
     editorNote: "무난한 생활형 주제도 HOT 댓글이 나오면 재방문 포인트가 생긴다는 검증용 경기.",
@@ -270,7 +275,6 @@ const baseArenas: Arena[] = [
     category: "상상배틀",
     status: "main",
     heat: 99,
-    spectators: 22880,
     scheduledAt: "진행 중",
     openingLine: "논리보다 장면 상상이 먼저 튀어나오는 레전드 매치업",
     editorNote: "이런 말도 안 되는 매치업이 아레나의 순수 재미 담당. 빠지면 섭섭함.",
@@ -283,7 +287,6 @@ const baseArenas: Arena[] = [
     category: "상상배틀",
     status: "upcoming",
     heat: 92,
-    spectators: 13140,
     scheduledAt: "수요일 21:00",
     openingLine: "귀여움과 공포가 같은 문장에 들어가는 이상한 시뮬레이션",
     editorNote: "과학적 근거 없어도 됨. 상상력과 드립으로 밀어붙이는 경기.",
@@ -296,7 +299,6 @@ const baseArenas: Arena[] = [
     category: "상상배틀",
     status: "upcoming",
     heat: 89,
-    spectators: 10220,
     scheduledAt: "목요일 20:00",
     openingLine: "능력보다 인성 검사가 먼저 시작되는 초능력 선택지",
     editorNote: "댓글 쓰는 순간 본인 윤리관이 들킬 수 있는 웃긴 위험 주제.",
@@ -309,7 +311,6 @@ const baseArenas: Arena[] = [
     category: "전통논쟁",
     status: "live",
     heat: 95,
-    spectators: 17640,
     scheduledAt: "진행 중",
     openingLine: "인류가 수천 년째 놓지 못한 최상위 떡밥",
     editorNote: "믿음, 이성, 경험이 부딪히는 클래식. 조롱보다 논리와 드립의 균형이 핵심.",
@@ -322,7 +323,6 @@ const baseArenas: Arena[] = [
     category: "전통논쟁",
     status: "upcoming",
     heat: 88,
-    spectators: 12110,
     scheduledAt: "금요일 20:00",
     openingLine: "우주가 너무 넓다는 말 하나로 매번 다시 불붙는 논쟁",
     editorNote: "과학, 음모론, 낭만이 한 화면에 모이는 안정적인 관전형 주제.",
@@ -335,7 +335,6 @@ const baseArenas: Arena[] = [
     category: "전통논쟁",
     status: "upcoming",
     heat: 91,
-    spectators: 14260,
     scheduledAt: "토요일 19:00",
     openingLine: "기원에 대한 믿음과 과학 설명이 정면으로 붙는 오래된 링",
     editorNote: "무겁게 갈 수도 있지만, 초반엔 서로 논리 한 방씩 던지는 구조가 잘 맞음.",
@@ -348,7 +347,6 @@ const baseArenas: Arena[] = [
     category: "철학",
     status: "upcoming",
     heat: 84,
-    spectators: 8920,
     scheduledAt: "일요일 22:00",
     openingLine: "내가 늦잠 잔 것도 우주의 계획인지 묻는 철학 경기",
     editorNote: "진지한 철학 주제인데 일상 핑계 드립이 잘 섞일 수 있음.",
@@ -361,7 +359,6 @@ const baseArenas: Arena[] = [
     category: "철학",
     status: "upcoming",
     heat: 82,
-    spectators: 8170,
     scheduledAt: "월요일 21:00",
     openingLine: "성선설과 성악설 사이에서 댓글창 인성 테스트 시작",
     editorNote: "학교에서 한 번쯤 들어본 주제를 현대 댓글 감성으로 다시 굴리는 경기.",
@@ -374,7 +371,6 @@ const baseArenas: Arena[] = [
     category: "철학",
     status: "upcoming",
     heat: 76,
-    spectators: 6380,
     scheduledAt: "화요일 22:00",
     openingLine: "시험, 회사, 인생까지 다 끌려오는 만능 논쟁",
     editorNote: "가볍게 시작해도 자기 경험담이 붙기 쉬운 전통형 주제.",
@@ -387,7 +383,6 @@ const baseArenas: Arena[] = [
     category: "전통논쟁",
     status: "upcoming",
     heat: 90,
-    spectators: 15920,
     scheduledAt: "수요일 20:00",
     openingLine: "모두가 아니라면서도 잔고를 확인하게 되는 논쟁",
     editorNote: "철학과 현실감이 동시에 있어서 참여 허들이 낮고 댓글 각도가 많음.",
@@ -402,7 +397,7 @@ const createArena = (
   category: string,
   openingLine: string,
   editorNote: string
-): Arena => ({
+): ArenaSeed => ({
   id,
   title,
   optionA,
@@ -410,14 +405,13 @@ const createArena = (
   category,
   status: id % 17 === 0 ? "closed" : id % 5 === 0 ? "live" : "upcoming",
   heat: 62 + ((id * 7) % 38),
-  spectators: 3600 + ((id * 1370) % 19000),
   scheduledAt:
     id % 17 === 0 ? "아카이브" : id % 5 === 0 ? "진행 중" : "편성 대기",
   openingLine,
   editorNote,
 });
 
-const extraArenas: Arena[] = [
+const extraArenas: ArenaSeed[] = [
   createArena(23, "AI가 쓴 자기소개서 허용 vs 부정행위", "허용", "부정행위", "AI", "취업 시장에서 도구와 실력의 경계가 흔들리는 경기", "요즘 가장 현실적인 AI 논쟁. 학생, 취준생, 면접관 모두 한마디씩 나올 각."),
   createArena(24, "AI 그림도 예술이다 vs 그냥 생성물이다", "예술", "생성물", "AI", "창작자의 손맛과 프롬프트 감각이 정면충돌", "저작권, 감성, 노동 가치까지 한 번에 끌려오는 AI 단골 떡밥."),
   createArena(25, "AI 의사 진단 믿는다 vs 인간 의사가 낫다", "AI 진단", "인간 의사", "AI", "정확도와 책임 소재가 동시에 걸린 의료형 논쟁", "고위험 주제라 감정선이 세지만, 사용자 관심도는 확실히 높은 주제."),
@@ -525,11 +519,24 @@ export const seededNumber = (seed: number, min: number, max: number) => {
   return min + (Math.floor(mixed) % range);
 };
 
-export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => ({
-  ...arena,
-  heat: seededNumber(arena.id * 5 + arena.heat, 58, 98),
-  spectators: seededNumber(arena.id * 13 + arena.heat, 20, 400),
-}));
+const votePercents = [51, 63, 74, 48, 82, 56, 39, 68, 43, 57, 71, 52, 66, 35, 79, 46, 61, 88, 54, 72, 41, 59];
+
+export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => {
+  const heat = seededNumber(arena.id * 5 + arena.heat, 58, 98);
+  const leftPercent = votePercents[arena.id % votePercents.length];
+
+  return {
+    ...arena,
+    heat,
+    spectators: seededNumber(arena.id * 13 + arena.heat, 20, 400),
+    commentsCount: seededNumber(arena.id * 17 + heat, 5, 80),
+    recentCommentsCount: seededNumber(arena.id * 19 + heat, 1, 8),
+    recentVotesCount: seededNumber(arena.id * 23 + heat, 10, 90),
+    leftPercent,
+    rightPercent: 100 - leftPercent,
+    totalVotes: seededNumber(arena.id * 29 + heat, 48, 640),
+  };
+});
 
 type SamplePair = {
   a: [string, string, number, Record<ReactionType, number>];
@@ -650,19 +657,25 @@ const generatedNicknames = [
 ];
 
 const generatedAComments = [
-  (arena: Arena) => `${arena.optionA} 고르는 게 이상한 게 아니라, 이 상황에서 ${arena.optionB}가 너무 낭만론임.`,
-  (arena: Arena) => `${arena.optionA}. 길게 볼 것도 없음. 실제로 닥치면 다들 이쪽으로 손 감.`,
-  (arena: Arena) => `${arena.optionB} 말은 듣기엔 좋은데 현실 들어가면 바로 무너짐. ${arena.optionA}가 덜 예쁘고 더 맞는 답임.`,
-  (arena: Arena) => `${arena.openingLine} 이 문장만 봐도 ${arena.optionA} 쪽이 더 살아있는 선택지임.`,
-  (arena: Arena) => `${arena.optionA} 반대하는 사람들 대부분 상황을 너무 깨끗하게 상상함. 현실은 늘 지저분해서 이쪽이 맞음.`,
+  (arena: Arena) => `${arena.optionA}. 이건 고민 길게 할수록 이상해짐. 막상 닥치면 손이 먼저 이쪽으로 감.`,
+  (arena: Arena) => `난 ${arena.optionA} 간다. ${arena.optionB}는 말은 예쁜데 현실 들어가면 바로 삐걱댐.`,
+  (arena: Arena) => `${arena.optionA} 고른 사람들 욕할 게 아님. 솔직히 다들 마음속으론 이 계산 한 번씩 해봤잖아.`,
+  (arena: Arena) => `${arena.optionB}? 그거는 댓글로 볼 때만 멋있음. 실제 상황이면 ${arena.optionA}가 덜 후회함.`,
+  (arena: Arena) => `${arena.optionA}가 정답까진 몰라도 생존률은 높음. 커뮤니티에서만 센 척하면 안 됨.`,
+  (arena: Arena) => `${arena.optionA} 싫다는 사람도 막상 자기 일 되면 조용히 이쪽 누를 듯.`,
+  (arena: Arena) => `여기서 ${arena.optionA} 안 고르면 나중에 침대에서 계속 생각남. 그게 제일 무서움.`,
+  (arena: Arena) => `${arena.optionA}는 재미없어 보여도 뒤탈이 적음. 뒤탈 적은 게 생각보다 큰 능력임.`,
 ];
 
 const generatedBComments = [
-  (arena: Arena) => `${arena.optionA}는 말은 센데 막상 해보면 구멍이 큼. 난 ${arena.optionB}가 오래 버티는 쪽이라고 봄.`,
-  (arena: Arena) => `${arena.optionB}가 재미없어 보여도 결국 실전형임. 댓글에서만 센 선택지는 오래 못 감.`,
-  (arena: Arena) => `${arena.optionA} 쪽 논리는 항상 첫 장면까지만 있음. 두 번째 장면부터는 ${arena.optionB}가 맞아짐.`,
-  (arena: Arena) => `이건 감성 빼고 보면 ${arena.optionB}. ${arena.optionA}는 순간 뽕은 있는데 후폭풍 계산이 안 됨.`,
-  (arena: Arena) => `${arena.optionB} 편 든다. 반박하려면 실제로 이 상황 와도 ${arena.optionA} 고를 수 있는지부터 말해야 함.`,
+  (arena: Arena) => `${arena.optionB}지. ${arena.optionA}는 첫 장면만 보고 고르는 느낌이라 뒤가 너무 불안함.`,
+  (arena: Arena) => `나는 ${arena.optionB}. 댓글창에서 세 보이는 선택이 꼭 현실에서도 센 건 아님.`,
+  (arena: Arena) => `${arena.optionA} 고르면 처음엔 시원한데, 나중에 계산서가 돌아옴. 그래서 ${arena.optionB}.`,
+  (arena: Arena) => `${arena.optionB}가 덜 화려해도 오래 감. 사람들 이걸 너무 만만하게 봄.`,
+  (arena: Arena) => `솔직히 ${arena.optionA}는 밈으로는 좋은데 실전이면 ${arena.optionB}가 맞음.`,
+  (arena: Arena) => `${arena.optionB} 편 든다. 반박하려면 진짜 자기 일이어도 ${arena.optionA} 누를 수 있는지부터 말해야 함.`,
+  (arena: Arena) => `${arena.optionA}는 기세고 ${arena.optionB}는 현실임. 기세로 월요일을 못 버팀.`,
+  (arena: Arena) => `${arena.optionB} 무시하는 사람들 특: 막상 상황 오면 제일 먼저 흔들림.`,
 ];
 
 const getGeneratedPair = (arena: Arena): SamplePair => {
@@ -760,26 +773,22 @@ export const getArenaStats = (
         (comment) => comment.arenaId === arena.id && comment.side === "B"
       ).length
   );
-  const seedPercents = [51, 67, 82, 46, 73, 58, 39, 61, 55, 44, 76, 63, 49, 69, 35];
-  const seededPercent = seedPercents[arena.id % seedPercents.length];
-  const aPercent = Math.min(86, Math.max(14, seededPercent + localA * 2 - localB * 2));
+  const aPercent = Math.min(90, Math.max(10, arena.leftPercent + localA * 2 - localB * 2));
   const reactionScore = targetComments.reduce(
     (sum, comment) => sum + getCommentScore(comment),
     0
   );
-  const displayCommentCount = seededNumber(arena.id * 17 + arena.heat, 5, 80);
-  const recentComments = seededNumber(arena.id * 19 + arena.heat, 1, 15);
-  const recentVotes = seededNumber(arena.id * 23 + arena.heat, 12, 96);
   const heatScore =
-    arena.heat * 2 + arena.spectators / 20 + displayCommentCount * 5 + reactionScore;
+    arena.heat * 2 + arena.spectators / 20 + arena.commentsCount * 5 + reactionScore;
 
   return {
     aPercent,
     bPercent: 100 - aPercent,
     commentCount: targetComments.length,
-    displayCommentCount,
-    recentComments,
-    recentVotes,
+    displayCommentCount: arena.commentsCount + Math.max(0, targetComments.length - initialComments.filter((comment) => comment.arenaId === arena.id).length),
+    recentComments: arena.recentCommentsCount,
+    recentVotes: arena.recentVotesCount,
+    totalVotes: arena.totalVotes + localA + localB,
     heatScore,
     reactionScore,
   };
