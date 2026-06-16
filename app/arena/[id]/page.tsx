@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { arenas, initialComments } from "@/lib/arena-data";
 import ArenaDetailClient from "./ArenaDetailClient";
@@ -9,6 +10,41 @@ type ArenaPageProps = {
 
 export function generateStaticParams() {
   return arenas.map((arena) => ({ id: String(arena.id) }));
+}
+
+export async function generateMetadata({
+  params,
+}: ArenaPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const arena = arenas.find((item) => item.id === Number(id));
+
+  if (!arena) {
+    return {
+      title: "VS Arena",
+    };
+  }
+
+  const title = `${arena.title} | VS Arena`;
+  const description = "너는 어느 쪽임? VS Arena에서 투표하고 댓글로 참전해보세요.";
+  const url = `/arena/${arena.id}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url,
+      images: ["/opengraph-image"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/opengraph-image"],
+    },
+  };
 }
 
 export default async function ArenaPage({ params }: ArenaPageProps) {

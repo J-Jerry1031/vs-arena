@@ -62,8 +62,14 @@ const nicknameSeeds = [
   "출근혐오자",
   "카톡읽씹분석가",
   "배달비저격수",
-  "댓글잠복러",
-  "민심감별사",
+  "부먹방지위원회",
+  "찍먹수호자",
+  "전애인거리두기",
+  "단톡방판정단",
+  "반박대기중",
+  "논리충전완료",
+  "감정과몰입러",
+  "AI상담불신자",
 ];
 const reactionButtons: { type: LocalReaction; label: string }[] = [
   { type: "fact", label: "인정" },
@@ -138,6 +144,7 @@ export default function ArenaDetailClient({
   const [freshCommentIds, setFreshCommentIds] = useState<Set<number>>(new Set());
   const [lastCommentAt, setLastCommentAt] = useState(0);
   const [abuseNotice, setAbuseNotice] = useState("");
+  const [shareNotice, setShareNotice] = useState("");
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [now, setNow] = useState(0);
 
@@ -332,6 +339,11 @@ export default function ArenaDetailClient({
     );
     setDraft("");
     setAbuseNotice("등록 완료. 이제 상대 진영 반응 기다리면 됨.");
+    window.setTimeout(() => {
+      document
+        .getElementById("comment-zone")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   };
 
   const likeComment = (id: number) => {
@@ -418,6 +430,29 @@ export default function ArenaDetailClient({
 
       return next;
     });
+  };
+
+  const shareArena = async () => {
+    const url = `${window.location.origin}/arena/${arena.id}`;
+    const text = `“${arena.title}”\n너는 어느 쪽임?\nVS Arena에서 투표해봐\n${url}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${arena.title} | VS Arena`,
+          text,
+          url,
+        });
+        setShareNotice("공유창 열림. 친구한테 판정 맡겨보세요.");
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShareNotice("논쟁 링크 복사됨. 친구한테 판정 맡겨보세요.");
+      }
+    } catch {
+      setShareNotice("공유가 취소됐어요. 링크 복사는 언제든 다시 가능함.");
+    }
+
+    window.setTimeout(() => setShareNotice(""), 2600);
   };
 
   const renderCommentCard = (comment: ArenaComment, index: number) => {
@@ -634,6 +669,23 @@ export default function ArenaDetailClient({
           전황 요약: {warSummary} 최근 10분 댓글은 {stats.recentTenComments}개,
           1시간 투표는 {stats.recentHourVotes}개 붙었습니다.
         </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
+            친구 의견 갈릴 판이면 바로 던져보세요. 단톡방 판정 들어오면 더 재밌어짐.
+          </div>
+          <button
+            type="button"
+            onClick={shareArena}
+            className="border border-[#E7B933]/45 bg-[#E7B933]/12 px-4 py-3 text-sm font-black text-[#F0D77A] transition hover:bg-[#E7B933] hover:text-black"
+          >
+            친구한테 판정 맡기기
+          </button>
+        </div>
+        {shareNotice ? (
+          <div className="mt-2 border border-[#E7B933]/35 bg-[#E7B933]/10 px-4 py-2 text-xs font-black text-[#F0D77A]">
+            {shareNotice}
+          </div>
+        ) : null}
 
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -720,7 +772,7 @@ export default function ArenaDetailClient({
                 onClick={changeNickname}
                 className="border border-white/10 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
               >
-                닉네임 {nickname || "생성중"} · 변경
+                오늘의 닉네임: {nickname || "생성중"} · 변경
               </button>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
@@ -826,6 +878,9 @@ export default function ArenaDetailClient({
                 ? "길게 말고, 걸리는 지점만 짧게."
                 : "예정 또는 종료된 경기는 댓글 작성이 잠겨 있음."}
             </p>
+            <div className={`mt-3 border px-3 py-2 text-xs font-black ${ACCENT_TONE}`}>
+              오늘의 닉네임: {nickname || "생성중"}
+            </div>
 
             <input
               value={nickname}

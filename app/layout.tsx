@@ -13,8 +13,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VS ARENA",
-  description: "논쟁과 관전을 콘텐츠로 만드는 인터넷 배틀 아레나",
+  metadataBase: new URL("https://git-hub-j-jerry1031-vs-arena.vercel.app"),
+  title: "VS Arena - 남들 싸우는 거 구경하다 못 참으면 참전",
+  description: "편 갈리는 주제에 투표하고, 댓글로 참전하는 VS 토론 커뮤니티",
+  openGraph: {
+    type: "website",
+    title: "VS Arena",
+    description: "남들 싸우는 거 구경하다 못 참겠으면 바로 참전.",
+    url: "https://git-hub-j-jerry1031-vs-arena.vercel.app/",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VS Arena",
+    description: "남들 싸우는 거 구경하다 못 참겠으면 바로 참전.",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({

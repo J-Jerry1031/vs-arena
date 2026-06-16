@@ -510,6 +510,12 @@ const extraArenas: ArenaSeed[] = [
   createArena(110, "인생은 경쟁이다 vs 협력이다", "경쟁", "협력", "철학", "사회와 인간관계를 보는 기본 시선이 갈리는 경기", "직장/교육 논쟁과도 자연스럽게 연결됨."),
   createArena(111, "기술은 인간을 자유롭게 한다 vs 더 종속시킨다", "자유", "종속", "철학", "스마트폰부터 AI까지 모두 끌려오는 현대 철학", "AI 카테고리에서 넘어오는 유저를 잡기 좋은 주제."),
   createArena(112, "죽음이 있어야 삶이 의미 있다 vs 없어도 의미 있다", "죽음 필요", "의미 있음", "철학", "유한성과 의미를 두고 벌어지는 무거운 클래식", "깊은 댓글을 유도하는 철학 카테고리 마감 카드."),
+  createArena(113, "애인이 이성 친구와 단둘이 술 가능 vs 절대 불가", "가능", "절대 불가", "연애", "믿음과 굳이 만드는 불안이 정면으로 붙는 연애 불판", "단톡방에 던지는 순간 바로 편 갈리는 바이럴형 주제."),
+  createArena(114, "월 300 평생 받기 vs 로또 1등 한 번", "월 300 평생", "로또 1등", "돈", "안정적인 안전벨트와 인생 리셋 버튼 사이의 현실 배틀", "돈 얘기인데 누구나 자기 인생 기준으로 바로 답하게 되는 주제."),
+  createArena(115, "출근 10분 거리 월급 250 vs 출근 1시간 거리 월급 350", "10분 250", "1시간 350", "직장", "통근 시간과 월급 100만원의 교환비를 묻는 직장인 불판", "회사 다니는 사람은 제목만 봐도 이미 계산기 켜는 주제."),
+  createArena(116, "AI 연애상담 믿을 수 있다 vs 절대 못 믿는다", "믿을 수 있음", "절대 못 믿음", "AI", "객관적인 조언과 책임 없는 위로 사이의 연애 상담 배틀", "AI와 연애를 동시에 건드려 외부 유입 반응이 빠른 주제."),
+  createArena(117, "읽씹이 더 싫다 vs 늦답이 더 싫다", "읽씹", "늦답", "연애", "확실한 상처와 길게 끄는 희망고문 중 무엇이 더 빡치는가", "카톡 답장 논쟁의 압축판. 누구나 한 번쯤 당해본 주제."),
+  createArena(118, "죽기 전 진실 알기 vs 모른 채 행복하게 살기", "진실 알기", "모른 채 행복", "선택지옥", "알 권리와 평온한 착각 중 하나를 고르는 마지막 질문", "철학적이지만 제목만으로 바로 선택하게 되는 쉬운 딜레마."),
 ];
 
 export const seededNumber = (seed: number, min: number, max: number) => {
@@ -637,6 +643,50 @@ const samplePairs: Partial<Record<number, SamplePair>> = {
     a: ["행복구매자", "돈으로 행복 못 산다는 말은 배송비 무료 조건을 아직 못 맞춘 사람 말임. 돈은 행복을 직접 사진 않아도 불행을 대량으로 삭제함.", 86, { knockout: 7, meme: 29, stretch: 2, fact: 8, funny: 25 }],
     b: ["잔고철학자", "돈은 불행을 줄여주지 행복을 보장하진 않음. 근데 일단 줄여주는 게 크긴 함. 그래도 관계와 건강은 카드 결제로 끝나지 않음.", 72, { knockout: 9, meme: 6, stretch: 1, fact: 18, funny: 4 }],
   },
+  45: {
+    a: ["쿨한척금지", "전 애인이랑 친구 가능하다는 건 둘 중 한 명이 아직 정리를 덜 했다는 뜻임.", 88, { knockout: 12, meme: 18, stretch: 2, fact: 14, funny: 11 }],
+    b: ["거리두기장인", "가능은 하지. 근데 내 애인이 그러면 갑자기 불가능해짐. 이게 이 주제의 핵심임.", 93, { knockout: 16, meme: 21, stretch: 1, fact: 12, funny: 18 }],
+  },
+  58: {
+    a: ["의리잔고", "잃어도 되는 돈이면 빌려주고, 아니면 안 빌려주는 게 맞음. 친구보다 상환일이 무서워짐.", 66, { knockout: 8, meme: 9, stretch: 1, fact: 17, funny: 5 }],
+    b: ["채무자공포증", "돈 빌려주는 순간 친구가 채무자로 보이기 시작함. 관계 망치는 지름길임.", 82, { knockout: 13, meme: 12, stretch: 2, fact: 15, funny: 8 }],
+  },
+  63: {
+    a: ["민초수호단", "민초 싫다는 사람들 특: 한 입 먹고 표정부터 과장함. 치약이면 치약 회사가 이렇게 맛있게 만들 리 없음.", 75, { knockout: 6, meme: 28, stretch: 4, fact: 4, funny: 24 }],
+    b: ["치약감별사", "민초는 디저트가 아니라 양치 후 디저트 먹는 느낌임. 입이 헷갈려함.", 79, { knockout: 4, meme: 31, stretch: 3, fact: 3, funny: 27 }],
+  },
+  64: {
+    a: ["소스민주화", "부먹은 소스 맛이고 찍먹은 튀김 맛임. 애초에 다른 종목임.", 92, { knockout: 10, meme: 23, stretch: 1, fact: 10, funny: 16 }],
+    b: ["튀김수호자", "부먹은 단체전에서 독재임. 찍먹은 최소한 선택권을 줌.", 97, { knockout: 14, meme: 26, stretch: 1, fact: 8, funny: 19 }],
+  },
+  73: {
+    a: ["오프라인공포", "인터넷 없으면 세상에서 삭제되는 느낌일 듯. 친구 없어도 인터넷엔 사람이 너무 많음.", 61, { knockout: 5, meme: 14, stretch: 3, fact: 7, funny: 10 }],
+    b: ["친구0명불가", "친구는 적어도 되는데 0명은 다른 얘기임. 불편함보다 외로움이 오래 감.", 87, { knockout: 12, meme: 11, stretch: 1, fact: 15, funny: 8 }],
+  },
+  113: {
+    a: ["믿음테스트", "술이 문제가 아니라 단둘이가 문제임. 굳이 불안한 상황을 만드는 건 믿음이랑 다른 얘기임.", 84, { knockout: 14, meme: 10, stretch: 1, fact: 19, funny: 7 }],
+    b: ["잠못자는편", "괜찮다고 말은 할 수 있음. 근데 그날 잠은 잘 못 잠.", 91, { knockout: 11, meme: 24, stretch: 2, fact: 9, funny: 20 }],
+  },
+  114: {
+    a: ["월300안정파", "월 300은 안전벨트고 로또 1등은 탈출 버튼임. 안정감이냐 리셋이냐 차이임.", 86, { knockout: 8, meme: 26, stretch: 1, fact: 12, funny: 19 }],
+    b: ["인생리셋러", "로또 1등 받고 조용히 사라질 자신 있으면 로또지. 문제는 인간관계가 본게임이라는 거.", 94, { knockout: 13, meme: 25, stretch: 1, fact: 14, funny: 17 }],
+  },
+  115: {
+    a: ["통근혐오자", "출근 10분은 복지임. 돈으로 환산 안 해본 사람만 왕복 2시간을 쉽게 말함.", 78, { knockout: 12, meme: 13, stretch: 1, fact: 18, funny: 9 }],
+    b: ["월급계산기", "월 100 차이면 솔직히 고민됨. 대신 6개월 뒤 출근길에서 내 성격이 먼저 망가질 듯.", 73, { knockout: 7, meme: 18, stretch: 2, fact: 11, funny: 13 }],
+  },
+  116: {
+    a: ["AI상담러", "친구보다 객관적일 때도 있음. 문제는 내가 듣고 싶은 말 나올 때까지 계속 물어본다는 거임.", 76, { knockout: 8, meme: 15, stretch: 2, fact: 13, funny: 9 }],
+    b: ["표정중요파", "AI는 말은 잘하는데 책임지는 표정이 없음. 연애상담은 정답보다 내 편이 필요한 순간도 있음.", 83, { knockout: 11, meme: 10, stretch: 1, fact: 17, funny: 5 }],
+  },
+  117: {
+    a: ["읽씹상처파", "읽씹은 확실히 아픈데 끝은 남. 늦답은 사람을 계속 기다리게 해서 더 나쁨.", 82, { knockout: 10, meme: 16, stretch: 2, fact: 14, funny: 8 }],
+    b: ["희망고문싫음", "읽씹은 종료고 늦답은 희망고문임. 답장보다 내 자존심이 먼저 닳음.", 96, { knockout: 15, meme: 22, stretch: 1, fact: 12, funny: 16 }],
+  },
+  118: {
+    a: ["진실중독", "모르고 행복한 게 편한 건 아는데, 죽기 전이면 진실 한 번은 보고 가야 하지 않나.", 58, { knockout: 6, meme: 6, stretch: 2, fact: 13, funny: 3 }],
+    b: ["평온우선", "마지막에 진실 알고 멘탈 나가면 그게 무슨 의미임. 행복하게 모르는 것도 능력임.", 74, { knockout: 9, meme: 13, stretch: 1, fact: 10, funny: 8 }],
+  },
 };
 
 const generatedReactions = (
@@ -663,27 +713,27 @@ const generatedNicknames = [
 
 const generatedAComments = [
   (arena: Arena) => `${arena.optionA}. 말 길게 할수록 지는 주제임. 그냥 이쪽이 덜 피곤함.`,
-  (arena: Arena) => `난 ${arena.optionA}. ${arena.optionB} 고르면 나중에 혼자 이불킥할 그림이 보임.`,
-  (arena: Arena) => `${arena.optionA}는 재미없어 보여도 후회가 적음. 후회 적은 게 은근 최강임.`,
+  (arena: Arena) => `난 ${arena.optionA}. ${arena.optionB} 쪽 고르면 나중에 혼자 이불킥할 그림이 보임.`,
+  (arena: Arena) => `${arena.optionA} 쪽은 재미없어 보여도 후회가 적음. 후회 적은 게 은근 최강임.`,
   (arena: Arena) => `${arena.optionB} 좋아 보이는 건 인정. 근데 내 돈, 내 시간 걸리면 ${arena.optionA} 누름.`,
   (arena: Arena) => `${arena.optionA} 싫다던 사람도 자기 차례 오면 표정 바로 바뀔 듯.`,
-  (arena: Arena) => `${arena.optionA}는 드립 빼고 봐도 버틸 만함. 그게 생각보다 큼.`,
+  (arena: Arena) => `${arena.optionA} 쪽은 드립 빼고 봐도 버틸 만함. 그게 생각보다 큼.`,
   (arena: Arena) => `${arena.optionA} 안 고르면 하루 종일 찝찝함. 답은 이미 몸이 알고 있음.`,
   (arena: Arena) => `${arena.optionA} 쪽은 최소한 나중에 남 탓은 안 하게 됨.`,
-  (arena: Arena) => `${arena.optionA}는 안전벨트 느낌이고 ${arena.optionB}는 창문 열고 달리는 느낌임.`,
+  (arena: Arena) => `${arena.optionA} 쪽은 안전벨트 느낌이고 ${arena.optionB} 쪽은 창문 열고 달리는 느낌임.`,
   (arena: Arena) => `${arena.optionA} 편 든다. 이유? 끝나고 잠은 잘 올 것 같아서.`,
 ];
 
 const generatedBComments = [
-  (arena: Arena) => `${arena.optionB}지. ${arena.optionA}는 듣자마자 솔깃한데 뒷맛이 너무 셈.`,
+  (arena: Arena) => `${arena.optionB}지. ${arena.optionA} 쪽은 듣자마자 솔깃한데 뒷맛이 너무 셈.`,
   (arena: Arena) => `나는 ${arena.optionB}. 커뮤니티에선 조용한 선택이 실제론 제일 세더라.`,
   (arena: Arena) => `${arena.optionA} 고르면 순간은 시원함. 근데 다음날의 내가 욕할 듯.`,
-  (arena: Arena) => `${arena.optionB}가 덜 화려해도 오래 감. 오래 가는 쪽이 결국 이김.`,
-  (arena: Arena) => `솔직히 ${arena.optionA}는 밈으로 좋고, ${arena.optionB}는 생활로 좋음.`,
+  (arena: Arena) => `${arena.optionB}는 당장은 심심한데, 막상 고르면 제일 덜 흔들릴 선택임.`,
+  (arena: Arena) => `솔직히 ${arena.optionA} 쪽은 밈으로 좋고, ${arena.optionB} 쪽은 생활로 좋음.`,
   (arena: Arena) => `${arena.optionB} 편. 이건 멋보다 멘탈 관리 문제임.`,
-  (arena: Arena) => `${arena.optionA}는 박수 받고 끝, ${arena.optionB}는 다음 주까지 살아남음.`,
+  (arena: Arena) => `${arena.optionA} 쪽은 박수 받고 끝, ${arena.optionB} 쪽은 다음 주까지 살아남음.`,
   (arena: Arena) => `${arena.optionB} 무시하면 꼭 나중에 그 선택지가 생각남.`,
-  (arena: Arena) => `${arena.optionB}는 소리 없이 강한 타입임. 막상 골라보면 티 남.`,
+  (arena: Arena) => `${arena.optionB} 쪽은 소리 없이 강한 타입임. 막상 골라보면 티 남.`,
   (arena: Arena) => `${arena.optionB} 쪽이 덜 자극적이라 그렇지, 실제론 이게 더 무서움.`,
 ];
 

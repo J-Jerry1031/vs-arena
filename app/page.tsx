@@ -38,6 +38,13 @@ const categoryTabs: CategoryTab[] = [
   { id: "ai", label: "AI/미래", categories: ["AI"] },
 ];
 
+const viralArenaIds = [3, 113, 114, 45, 64, 117, 115, 73, 116, 58, 63, 118];
+const getViralRank = (arena: Arena) => {
+  const index = viralArenaIds.indexOf(arena.id);
+
+  return index === -1 ? 999 : index;
+};
+
 const getWarMetrics = (arena: Arena) => {
   const stats = getArenaStats(arena, initialComments);
   const gap = Math.abs(stats.aPercent - stats.bPercent);
@@ -192,6 +199,7 @@ const BattleCard = ({
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [participations, setParticipations] = useState<MyParticipation[]>([]);
+  const [shareNotice, setShareNotice] = useState("");
   const activeTab =
     categoryTabs.find((tab) => tab.id === activeCategory) ?? categoryTabs[0];
   const filteredArenas = useMemo(
@@ -207,7 +215,7 @@ export default function Home() {
     Math.max(300, 300 + liveArenas.reduce((sum, arena) => sum + arena.spectators, 0) % 601)
   );
   const allRankedArenas = [...filteredArenas].sort(
-    (a, b) => getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
+    (a, b) => getViralRank(a) - getViralRank(b) || getWarMetrics(b).heatScore - getWarMetrics(a).heatScore
   );
   const mainArena = allRankedArenas.find((arena) => statusMeta[arena.status].canJoin) ?? allRankedArenas[0];
   const mainMetrics = getWarMetrics(mainArena);
@@ -215,15 +223,15 @@ export default function Home() {
   const mainHotComment = getArenaHotComment(mainArena.id, initialComments);
   const closeArenas = [...filteredArenas]
     .filter((arena) => statusMeta[arena.status].canJoin && arena.id !== mainArena.id)
-    .sort((a, b) => getWarMetrics(a).gap - getWarMetrics(b).gap)
+    .sort((a, b) => getViralRank(a) - getViralRank(b) || getWarMetrics(a).gap - getWarMetrics(b).gap)
     .slice(0, 5);
   const commentBoomArenas = [...filteredArenas]
     .filter((arena) => arena.id !== mainArena.id)
-    .sort((a, b) => getWarMetrics(b).displayComments - getWarMetrics(a).displayComments)
+    .sort((a, b) => getViralRank(a) - getViralRank(b) || getWarMetrics(b).displayComments - getWarMetrics(a).displayComments)
     .slice(0, 5);
   const latestArenas = [...filteredArenas]
     .filter((arena) => arena.id !== mainArena.id)
-    .sort((a, b) => b.id - a.id)
+    .sort((a, b) => getViralRank(a) - getViralRank(b) || b.id - a.id)
     .slice(0, 5);
   const myArenas = participations
     .map((item) => {
@@ -267,6 +275,29 @@ export default function Home() {
       }
     }, 0);
   }, []);
+
+  const shareArena = async (arena: Arena) => {
+    const url = `${window.location.origin}/arena/${arena.id}`;
+    const text = `“${arena.title}”\n너는 어느 쪽임?\nVS Arena에서 투표해봐\n${url}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${arena.title} | VS Arena`,
+          text,
+          url,
+        });
+        setShareNotice("공유창 열림. 친구한테 판정 맡겨보세요.");
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShareNotice("링크 복사 완료. 단톡방에 던져보세요.");
+      }
+    } catch {
+      setShareNotice("공유가 취소됐어요. 그래도 이 판은 꽤 던질 만함.");
+    }
+
+    window.setTimeout(() => setShareNotice(""), 2600);
+  };
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#08090d] text-zinc-100">
@@ -317,23 +348,6 @@ export default function Home() {
           ))}
         </section>
 
-        <nav className="flex gap-2 overflow-x-auto border-b border-white/10 py-3">
-          {categoryTabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveCategory(tab.id)}
-              className={`shrink-0 border px-4 py-2 text-xs font-black transition ${
-                activeCategory === tab.id
-                  ? "border-[#E7B933] bg-[#E7B933] text-black"
-                  : "border-white/10 bg-white/[0.035] text-zinc-400 hover:border-white/25 hover:text-zinc-100"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
         {myArenas.length > 0 ? (
           <section className="border-b border-white/10 py-4">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -372,6 +386,16 @@ export default function Home() {
         ) : null}
 
         <section className="border-b border-white/10 py-4 sm:py-5">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-black text-[#F0D77A]">
+              오늘 단톡방에 던지기 좋은 논쟁
+            </p>
+            {shareNotice ? (
+              <span className="border border-[#E7B933]/35 bg-[#E7B933]/10 px-3 py-1 text-xs font-black text-[#F0D77A]">
+                {shareNotice}
+              </span>
+            ) : null}
+          </div>
           <Link
             href={`/arena/${mainArena.id}`}
             className="group relative block overflow-hidden border border-[#A53A4A]/45 bg-white/[0.035] p-4 text-left shadow-2xl shadow-black/30 transition hover:border-[#E7B933]/55 sm:p-5"
@@ -380,6 +404,9 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="animate-pulse bg-[#A53A4A] px-3 py-1 text-xs font-black text-white">
                 오늘의 불판
+              </span>
+              <span className="border border-[#E7B933]/40 bg-[#E7B933]/10 px-3 py-1 text-xs font-black text-[#F0D77A]">
+                친구들 의견 갈라지는 중
               </span>
               {getHotBadges(mainArena).map((badge) => (
                 <span
@@ -476,7 +503,31 @@ export default function Home() {
               </span>
             </div>
           </Link>
+          <button
+            type="button"
+            onClick={() => shareArena(mainArena)}
+            className="mt-3 w-full border border-white/10 bg-black/30 px-5 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
+          >
+            친구한테 이 논쟁 던지기
+          </button>
         </section>
+
+        <nav className="flex gap-2 overflow-x-auto border-b border-white/10 py-3">
+          {categoryTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveCategory(tab.id)}
+              className={`shrink-0 border px-4 py-2 text-xs font-black transition ${
+                activeCategory === tab.id
+                  ? "border-[#E7B933] bg-[#E7B933] text-black"
+                  : "border-white/10 bg-white/[0.035] text-zinc-400 hover:border-white/25 hover:text-zinc-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
         <section className="grid gap-4 py-5">
           {battleSections.map((section) => (
