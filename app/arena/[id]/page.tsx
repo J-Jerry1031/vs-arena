@@ -36,13 +36,20 @@ export async function generateMetadata({
       title,
       description,
       url,
-      images: ["/opengraph-image"],
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "VS Arena",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: ["/og-image.png"],
     },
   };
 }

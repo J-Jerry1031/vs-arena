@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vs-arena-two.vercel.app"),
@@ -21,13 +10,30 @@ export const metadata: Metadata = {
     title: "VS Arena",
     description: "남들 싸우는 거 구경하다 못 참겠으면 바로 참전.",
     url: "https://vs-arena-two.vercel.app/",
-    images: ["/opengraph-image"],
+    siteName: "VS Arena",
+    locale: "ko_KR",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "VS Arena",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "VS Arena",
     description: "남들 싸우는 거 구경하다 못 참겠으면 바로 참전.",
-    images: ["/opengraph-image"],
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -37,10 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
