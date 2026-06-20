@@ -33,9 +33,10 @@ type SuggestionForm = {
 type HomeEventName = "home_view" | "vote" | "comment" | "share";
 
 const homeCategories: HomeCategory[] = [
+  { id: "all", label: "전체", categories: [] },
   { id: "relationship", label: "연애/인간관계", categories: ["연애"] },
-  { id: "reality", label: "돈/직장/현실", categories: ["돈", "직장"] },
-  { id: "life", label: "취향/생활", categories: ["생활", "선택지옥"] },
+  { id: "reality", label: "돈/직장", categories: ["돈", "직장"] },
+  { id: "life", label: "생활/취향", categories: ["생활", "선택지옥"] },
 ];
 
 const homeArenaIds = [4, 3, 9, 114, 73, 10, 45, 117, 115, 58, 63, 64, 55, 33, 69, 72];
@@ -167,9 +168,12 @@ export default function Home() {
   const featuredStats = getArenaStats(featuredArena, [...initialComments, ...localComments]);
   const activeCategoryData =
     homeCategories.find((category) => category.id === activeCategory) ?? homeCategories[0];
-  const categoryArenas = homeArenas.filter((arena) =>
-    activeCategoryData.categories.includes(arena.category)
-  );
+  const categoryArenas =
+    activeCategoryData.id === "all"
+      ? homeArenas
+      : homeArenas.filter((arena) =>
+          activeCategoryData.categories.includes(arena.category)
+        );
   const dividedArenas = [...homeArenas]
     .filter((arena) => arena.id !== featuredArena.id)
     .sort((a, b) => {
@@ -408,7 +412,7 @@ export default function Home() {
 
           {!selectedSide ? (
             <p className="mt-4 text-center text-sm font-bold text-zinc-500">
-              결과는 고른 뒤에 보여줄게.
+              투표하면 현재 민심이 보여요.
             </p>
           ) : (
             <div className="mt-5 border border-white/10 bg-[#0d1017] p-4">
@@ -599,7 +603,7 @@ export default function Home() {
             <div key={section.title} className="border border-white/10 bg-[#11141c] p-4">
               <h2 className="text-lg font-black text-white">{section.title}</h2>
               <div className="mt-3 space-y-3">
-                {section.arenas.slice(0, 4).map((arena) => {
+                {section.arenas.slice(0, 5).map((arena) => {
                   const stats = getArenaStats(arena);
 
                   return (

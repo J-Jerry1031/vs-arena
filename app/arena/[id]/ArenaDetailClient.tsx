@@ -15,7 +15,6 @@ import {
   getArenaStats,
   getCommentScore,
   getReactionTotal,
-  statusMeta,
 } from "@/lib/arena-data";
 
 type ArenaDetailClientProps = {
@@ -73,8 +72,8 @@ const nicknameSeeds = [
 ];
 const reactionButtons: { type: LocalReaction; label: string }[] = [
   { type: "fact", label: "인정" },
-  { type: "stretch", label: "개소리" },
-  { type: "knockout", label: "반박마려움" },
+  { type: "stretch", label: "반대함" },
+  { type: "knockout", label: "반박하기" },
   { type: "funny", label: "웃김" },
   { type: "meme", label: "논리승" },
 ];
@@ -145,10 +144,9 @@ export default function ArenaDetailClient({
   const [lastCommentAt, setLastCommentAt] = useState(0);
   const [abuseNotice, setAbuseNotice] = useState("");
   const [shareNotice, setShareNotice] = useState("");
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [now, setNow] = useState(0);
 
-  const canJoinArena = statusMeta[arena.status].canJoin;
+  const canJoinArena = arena.status !== "closed";
   const arenaComments = comments.filter((comment) => comment.arenaId === arena.id);
   const stats = getDetailWarMetrics(arena, comments);
   const hotComment = getArenaHotComment(arena.id, comments);
@@ -158,15 +156,10 @@ export default function ArenaDetailClient({
     lastCommentAt > 0 ? Math.max(0, COMMENT_COOLDOWN_MS - (now - lastCommentAt)) : 0;
   const cooldownLeftSeconds = Math.ceil(cooldownLeftMs / 1000);
   const canSubmitComment = canJoinArena && cooldownLeftMs === 0 && draft.trim().length >= 5;
-  const selectedOption = selectedSide === "A" ? arena.optionA : arena.optionB;
-  const opposingOption = selectedSide === "A" ? arena.optionB : arena.optionA;
-  const draftPlaceholder =
-    selectedSide === "A"
-      ? `${opposingOption} 쪽 말 안 먹히는 이유 한 방 먹여주세요.`
-      : `${opposingOption} 쪽 주장에 반박해보세요.`;
+  const draftPlaceholder = "왜 이쪽을 골랐어?";
   const warSummary =
     stats.gap <= 5
-      ? "거의 반반입니다. 댓글 한 방에 분위기 뒤집힐 수 있습니다."
+      ? "거의 반반입니다. 댓글 하나로 분위기가 달라질 수 있습니다."
       : stats.aPercent > stats.bPercent
         ? `${arena.optionA} 진영이 앞서는 중. ${arena.optionB} 쪽 반박이 필요한 상황입니다.`
         : `${arena.optionB} 진영이 앞서는 중. ${arena.optionA} 쪽이 밀리는 중입니다.`;
@@ -248,11 +241,10 @@ export default function ArenaDetailClient({
 
     setSelectedSide(side);
     setVotedSide(side);
-    setIsComposerOpen(true);
     window.localStorage.setItem(`vs_arena_vote_${arena.id}`, side);
     persistParticipation(side);
     setAbuseNotice(
-      `참전 완료. 당신은 ${side === "A" ? arena.optionA : arena.optionB} 진영에 섰습니다.`
+      `${side === "A" ? arena.optionA : arena.optionB}에 한 표를 던졌어요.`
     );
   };
 
@@ -296,7 +288,7 @@ export default function ArenaDetailClient({
 
     if (!text || !canJoinArena) return;
     if (text.length < 5) {
-      setAbuseNotice("너무 짧으면 판정 불가. 최소 5글자는 던져줘.");
+      setAbuseNotice("의견을 5글자 이상 남겨주세요.");
       return;
     }
     if (cooldownLeftMs > 0) {
@@ -310,7 +302,7 @@ export default function ArenaDetailClient({
           comment.text.trim() === text
       )
     ) {
-      setAbuseNotice("같은 말 복붙은 관중석에서 바로 티남. 다른 각도로 가자.");
+      setAbuseNotice("같은 댓글은 한 번만 남길 수 있어요.");
       return;
     }
 
@@ -338,7 +330,7 @@ export default function ArenaDetailClient({
       String(submittedAt)
     );
     setDraft("");
-    setAbuseNotice("등록 완료. 이제 상대 진영 반응 기다리면 됨.");
+    setAbuseNotice("댓글을 남겼어요.");
     window.setTimeout(() => {
       document
         .getElementById("comment-zone")
@@ -348,7 +340,7 @@ export default function ArenaDetailClient({
 
   const likeComment = (id: number) => {
     if (likedCommentIds.has(id)) {
-      setAbuseNotice("추천은 한 댓글에 한 번만. 몰빵은 운영팀이 싫어함.");
+      setAbuseNotice("추천은 한 댓글에 한 번만 가능해요.");
       return;
     }
 
@@ -372,7 +364,7 @@ export default function ArenaDetailClient({
     const key = `${id}:${reaction}`;
 
     if (reactedKeys.has(key)) {
-      setAbuseNotice("같은 반응은 이미 찍었음. 판정은 한 번이면 충분.");
+      setAbuseNotice("같은 반응은 한 번만 남길 수 있어요.");
       return;
     }
 
@@ -410,10 +402,9 @@ export default function ArenaDetailClient({
     setDraft(
       `"${shortQuote}" 이 말에 답글: `
     );
-    setIsComposerOpen(true);
     window.setTimeout(() => {
       document
-        .getElementById("comment-write")
+        .getElementById("quick-comment")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 0);
   };
@@ -443,10 +434,10 @@ export default function ArenaDetailClient({
           text,
           url,
         });
-        setShareNotice("공유창 열림. 친구한테 판정 맡겨보세요.");
+        setShareNotice("공유창을 열었어요.");
       } else {
         await navigator.clipboard.writeText(text);
-        setShareNotice("논쟁 링크 복사됨. 친구한테 판정 맡겨보세요.");
+        setShareNotice("질문 링크를 복사했어요.");
       }
     } catch {
       setShareNotice("공유가 취소됐어요. 링크 복사는 언제든 다시 가능함.");
@@ -490,7 +481,7 @@ export default function ArenaDetailClient({
               ) : null}
               {isFreshComment ? (
                 <span className="border border-[#E7B933]/45 bg-[#E7B933] px-2 py-1 text-xs font-black text-black">
-                  방금 참전함
+                  방금 작성
                 </span>
               ) : null}
               <span className="text-sm font-bold text-zinc-300">
@@ -575,118 +566,45 @@ export default function ArenaDetailClient({
   };
 
   return (
-    <div className="min-w-0 space-y-4 pb-28">
+    <div className="min-w-0 space-y-4 pb-8">
       <section
         id="vote-zone"
         className="min-w-0 border border-white/10 bg-white/[0.035] p-4 sm:p-5"
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold text-[#F0D77A]">
-                #{arena.category}
-              </span>
-              {hotBadges.map((item) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-bold text-[#F0D77A]">#{arena.category}</span>
+          {votedSide
+            ? hotBadges.map((item) => (
                 <span
                   key={item.label}
                   className={`px-2 py-1 text-xs font-black ${item.tone}`}
                 >
                   {item.label}
                 </span>
-              ))}
-            </div>
-            <h1 className="mt-3 break-keep text-2xl font-black leading-tight text-white sm:text-5xl">
-              {arena.title}
-            </h1>
-            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
-              <div className="border border-white/10 bg-black/30 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-black text-white">현재 전황</h2>
-                  <span className="text-xs font-black text-[#F0D77A]">
-                    {badge}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
-                  <div className={`border p-3 ${SIDE_A_TONE.border} ${SIDE_A_TONE.bg}`}>
-                    <div className={`truncate text-sm font-black ${SIDE_A_TONE.text}`}>
-                      {arena.optionA}
-                    </div>
-                    <div className="mt-1 text-4xl font-black text-white">
-                      {stats.aPercent}%
-                    </div>
-                  </div>
-                  <div className="text-xs font-black text-zinc-500">VS</div>
-                  <div className={`border p-3 ${SIDE_B_TONE.border} ${SIDE_B_TONE.bg}`}>
-                    <div className={`truncate text-sm font-black ${SIDE_B_TONE.text}`}>
-                      {arena.optionB}
-                    </div>
-                    <div className="mt-1 text-4xl font-black text-white">
-                      {stats.bPercent}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className={`border p-4 text-center ${ACCENT_TONE}`}>
-                <div className="text-xs font-black">
-                  💬 댓글 전쟁
-                </div>
-                <div className="mt-1 text-5xl font-black text-white">
-                  {stats.displayComments.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-bold text-zinc-500">
-                  최근 10분 +{stats.recentTenComments}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid w-full grid-cols-3 border border-white/10 bg-black/25 text-center lg:min-w-64 lg:max-w-sm">
-            <div className="border-r border-white/10 px-3 py-3">
-              <div className="text-base font-black text-[#F0D77A] sm:text-lg">
-                {stats.displayComments.toLocaleString()}
-              </div>
-              <div className="text-xs text-zinc-500">누적 댓글</div>
-            </div>
-            <div className="border-r border-white/10 px-3 py-3">
-              <div className="text-base font-black text-[#F0D77A] sm:text-lg">
-                {arena.spectators.toLocaleString()}
-              </div>
-              <div className="text-xs text-zinc-500">구경중</div>
-            </div>
-            <div className="px-3 py-3">
-              <div className="text-base font-black text-white sm:text-lg">
-                +{stats.recentHourVotes}
-              </div>
-              <div className="text-xs text-zinc-500">1시간 투표</div>
-            </div>
-          </div>
+              ))
+            : null}
         </div>
-
-        <p className="mt-4 max-w-3xl text-sm font-bold leading-relaxed text-zinc-500">
+        <h1 className="mt-3 break-keep text-2xl font-black leading-tight text-white sm:text-5xl">
+          {arena.title}
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm font-bold leading-relaxed text-zinc-500">
           {arena.openingLine}
         </p>
-        <div className={`mt-4 border px-4 py-3 text-sm font-black leading-relaxed ${ACCENT_TONE}`}>
-          전황 요약: {warSummary} 최근 10분 댓글은 {stats.recentTenComments}개,
-          1시간 투표는 {stats.recentHourVotes}개 붙었습니다.
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
-            친구 의견 갈릴 판이면 바로 던져보세요. 단톡방 판정 들어오면 더 재밌어짐.
-          </div>
-          <button
-            type="button"
-            onClick={shareArena}
-            className="border border-[#E7B933]/45 bg-[#E7B933]/12 px-4 py-3 text-sm font-black text-[#F0D77A] transition hover:bg-[#E7B933] hover:text-black"
-          >
-            친구한테 판정 맡기기
-          </button>
-        </div>
-        {shareNotice ? (
-          <div className="mt-2 border border-[#E7B933]/35 bg-[#E7B933]/10 px-4 py-2 text-xs font-black text-[#F0D77A]">
-            {shareNotice}
-          </div>
-        ) : null}
 
+        <div className="mt-4 grid grid-cols-2 border border-white/10 bg-black/25 text-center">
+          <div className="border-r border-white/10 px-3 py-3">
+            <div className="text-base font-black text-white sm:text-lg">
+              {stats.totalVotes.toLocaleString()}
+            </div>
+            <div className="text-xs text-zinc-500">누적 참여</div>
+          </div>
+          <div className="px-3 py-3">
+            <div className="text-base font-black text-white sm:text-lg">
+              {stats.displayComments.toLocaleString()}
+            </div>
+            <div className="text-xs text-zinc-500">누적 댓글</div>
+          </div>
+        </div>
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-black text-white">내 편 고르기</h2>
@@ -694,12 +612,13 @@ export default function ArenaDetailClient({
               고르면 바로 민심 보임
             </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] sm:items-stretch">
             <button
               onClick={() => voteForSide("A")}
               disabled={!canJoinArena}
+              aria-pressed={votedSide === "A"}
               className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
-                selectedSide === "A"
+                votedSide === "A"
                 ? `${SIDE_A_TONE.border} ${SIDE_A_TONE.bg}`
                 : `border-white/10 bg-black/30 hover:${SIDE_A_TONE.border}`
               }`}
@@ -708,19 +627,21 @@ export default function ArenaDetailClient({
               <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
                 {arena.optionA}
               </div>
-              <div className="mt-3 text-sm text-zinc-400">
-                {stats.aPercent}% 지지
-              </div>
               <div className={`mt-4 px-4 py-3 text-center text-sm font-black ${SIDE_A_TONE.solid}`}>
-                {arena.optionA} 편 들기
+                {arena.optionA}에 한 표
               </div>
             </button>
+
+            <div className="grid min-h-12 place-items-center border border-white/10 bg-black/35 text-lg font-black text-white">
+              VS
+            </div>
 
             <button
               onClick={() => voteForSide("B")}
               disabled={!canJoinArena}
+              aria-pressed={votedSide === "B"}
               className={`min-w-0 border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 sm:p-5 ${
-                selectedSide === "B"
+                votedSide === "B"
                 ? `${SIDE_B_TONE.border} ${SIDE_B_TONE.bg}`
                 : `border-white/10 bg-black/30 hover:${SIDE_B_TONE.border}`
               }`}
@@ -729,76 +650,114 @@ export default function ArenaDetailClient({
               <div className="mt-1 break-keep text-2xl font-black text-white sm:text-3xl">
                 {arena.optionB}
               </div>
-              <div className="mt-3 text-sm text-zinc-400">
-                {stats.bPercent}% 지지
-              </div>
               <div className={`mt-4 px-4 py-3 text-center text-sm font-black ${SIDE_B_TONE.solid}`}>
-                {arena.optionB} 편 들기
+                {arena.optionB}에 한 표
               </div>
             </button>
           </div>
         </div>
-
-        <div className="mt-5 h-3 overflow-hidden bg-white/10">
-          <div
-            className="inline-block h-full bg-[#A53A4A] transition-all"
-            style={{ width: `${stats.aPercent}%` }}
-          />
-          <div
-            className="inline-block h-full bg-[#2D6A9F] transition-all"
-            style={{ width: `${stats.bPercent}%` }}
-          />
-        </div>
-        <div className="mt-2 flex justify-between text-xs font-black text-zinc-500">
-          <span>{arena.optionA} {stats.aPercent}%</span>
-          <span>{arena.optionB} {stats.bPercent}%</span>
-        </div>
-        {votedSide ? (
-          <div
-            id="quick-comment"
-            className="mt-5 border border-white/10 bg-black/30 p-3"
-          >
+        {!votedSide ? (
+          <p className="mt-4 text-center text-sm font-bold text-zinc-500">
+            투표하면 현재 민심이 보여요.
+          </p>
+        ) : (
+          <div className="mt-5 border border-white/10 bg-black/30 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-black text-white">
+                너는 {votedSide}를 골랐어.
+              </h2>
+              <span className="text-xs font-black text-[#F0D77A]">현재 민심 · {badge}</span>
+            </div>
+            <div className="mt-4 space-y-3">
               <div>
-                <div className="text-sm font-black text-white">
-                  투표 완료. 이제 한마디 박아보세요.
+                <div className="mb-1 flex justify-between text-sm font-black">
+                  <span>A {arena.optionA}</span>
+                  <span>{stats.aPercent}%</span>
                 </div>
-                <div className="mt-1 text-xs font-bold text-zinc-500">
-                  당신은 {votedSide === "A" ? arena.optionA : arena.optionB} 진영에 참전했습니다.
+                <div className="h-3 bg-white/10">
+                  <div className="h-full bg-[#A53A4A]" style={{ width: `${stats.aPercent}%` }} />
                 </div>
+              </div>
+              <div>
+                <div className="mb-1 flex justify-between text-sm font-black">
+                  <span>B {arena.optionB}</span>
+                  <span>{stats.bPercent}%</span>
+                </div>
+                <div className="h-3 bg-white/10">
+                  <div className="h-full bg-[#2D6A9F]" style={{ width: `${stats.bPercent}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className={`mt-4 border px-4 py-3 text-sm font-bold leading-relaxed ${ACCENT_TONE}`}>
+              {warSummary}
+            </div>
+            <div id="quick-comment" className="mt-5">
+              <h3 className="text-base font-black text-white">왜 이쪽을 골랐어?</h3>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_130px]">
+                <input
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  disabled={!canJoinArena}
+                  placeholder="닉네임"
+                  aria-label="닉네임"
+                  className="min-h-12 border border-white/10 bg-black/50 px-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60"
+                  maxLength={16}
+                />
+                <input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") addComment();
+                  }}
+                  disabled={!canJoinArena}
+                  placeholder={draftPlaceholder}
+                  className="min-h-12 border border-white/10 bg-black/50 px-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60"
+                  maxLength={500}
+                  aria-label="댓글 내용"
+                />
+                <button
+                  onClick={addComment}
+                  disabled={!canSubmitComment}
+                  className="min-h-12 bg-[#E7B933] px-4 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500"
+                >
+                  댓글 남기기
+                </button>
               </div>
               <button
                 type="button"
                 onClick={changeNickname}
-                className="border border-white/10 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
+                className="mt-2 text-xs font-bold text-zinc-500 transition hover:text-zinc-200"
               >
-                오늘의 닉네임: {nickname || "생성중"} · 변경
+                랜덤 닉네임 사용
               </button>
+              {abuseNotice ? (
+                <div className={`mt-3 border px-4 py-3 text-xs font-bold ${ACCENT_TONE}`}>
+                  {abuseNotice}
+                </div>
+              ) : null}
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                disabled={!canJoinArena}
-                placeholder={draftPlaceholder}
-                className="min-h-12 w-full border border-white/10 bg-black/50 px-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
-                maxLength={500}
-                aria-label="투표 후 빠른 댓글 입력"
-              />
+            <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
+                친구 의견도 궁금하다면 이 질문을 공유해보세요.
+              </div>
               <button
-                onClick={addComment}
-                disabled={!canSubmitComment}
-                aria-label="투표 후 빠른 한마디 던지기"
-                className="min-h-12 border border-[#E7B933] bg-[#E7B933] px-4 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
+                type="button"
+                onClick={shareArena}
+                className="border border-[#E7B933]/45 bg-[#E7B933]/12 px-4 py-3 text-sm font-black text-[#F0D77A] transition hover:bg-[#E7B933] hover:text-black"
               >
-                한마디 던지기
+                친구에게 공유하기
               </button>
             </div>
+            {shareNotice ? (
+              <div className="mt-2 border border-[#E7B933]/35 bg-[#E7B933]/10 px-4 py-2 text-xs font-black text-[#F0D77A]">
+                {shareNotice}
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        )}
       </section>
 
-      {hotComment ? (
+      {votedSide && hotComment ? (
         <section className={`border p-4 sm:p-5 ${ACCENT_TONE}`}>
           <div className="text-sm font-black">
             현재 경기 하이라이트
@@ -821,15 +780,16 @@ export default function ArenaDetailClient({
         </section>
       ) : null}
 
-      <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_270px]">
+      {votedSide ? (
+      <section className="min-w-0">
         <section id="comment-zone" className="min-w-0 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-black text-white">
-                피 튀기는 댓글 현장
+                갈리는 댓글 현장
               </h2>
               <p className="mt-1 text-xs font-bold text-zinc-600">
-                읽다가 못 참겠으면 아래 입력창에서 바로 끼어들면 됨.
+                다른 사람은 왜 그쪽을 골랐는지 확인해보세요.
               </p>
             </div>
             <div className="grid w-full grid-cols-2 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-[420px] sm:grid-cols-4">
@@ -868,95 +828,8 @@ export default function ArenaDetailClient({
           </div>
         </section>
 
-        <aside className="hidden min-w-0 space-y-4 lg:block">
-          <div id="comment-write" className="border border-white/10 bg-white/[0.035] p-3">
-            <h2 className="text-sm font-black text-zinc-300">
-              {canJoinArena ? "한마디 남기기" : "관전석"}
-            </h2>
-            <p className="mt-1 text-xs text-zinc-500">
-              {canJoinArena
-                ? "길게 말고, 걸리는 지점만 짧게."
-                : "예정 또는 종료된 경기는 댓글 작성이 잠겨 있음."}
-            </p>
-            <div className={`mt-3 border px-3 py-2 text-xs font-black ${ACCENT_TONE}`}>
-              오늘의 닉네임: {nickname || "생성중"}
-            </div>
-
-            <input
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              disabled={!canJoinArena}
-              className="mt-3 w-full border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none transition focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
-              maxLength={16}
-              aria-label="닉네임"
-            />
-            <button
-              type="button"
-              onClick={changeNickname}
-              className="mt-2 w-full border border-white/10 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
-            >
-              오늘의 닉네임 변경
-            </button>
-            <div className="mt-3 text-xs font-black text-zinc-500">
-              너는 누구 편?
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-            {(["A", "B"] as Side[]).map((side) => (
-                <button
-                  key={side}
-                  onClick={() => voteForSide(side)}
-                  disabled={!canJoinArena}
-                  className={`border px-2 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    selectedSide === side
-                      ? side === "A"
-                        ? SIDE_A_TONE.solid
-                        : SIDE_B_TONE.solid
-                      : "border-white/10 bg-black/30 text-zinc-400 hover:border-white/30"
-                  }`}
-                >
-                  {side === "A" ? arena.optionA : arena.optionB}
-                </button>
-              ))}
-            </div>
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={!canJoinArena}
-              placeholder={
-                canJoinArena
-                  ? draftPlaceholder
-                  : "이 경기는 지금 관전만 가능함."
-              }
-              className="mt-3 min-h-28 w-full resize-none border border-white/10 bg-black/40 p-3 text-sm leading-relaxed text-white outline-none transition placeholder:text-zinc-600 focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
-              maxLength={500}
-            />
-            <div className="mt-2 flex items-center justify-between gap-3 text-xs font-bold text-zinc-600">
-              <span>{draft.trim().length}/500</span>
-              <span>
-                {cooldownLeftMs > 0
-                  ? `${cooldownLeftSeconds}초 쿨다운`
-                  : "바로 작성 가능"}
-              </span>
-            </div>
-            {abuseNotice ? (
-              <div className={`mt-3 border px-4 py-3 text-xs font-bold ${ACCENT_TONE}`}>
-                {abuseNotice}
-              </div>
-            ) : null}
-            <button
-              onClick={addComment}
-              disabled={!canSubmitComment}
-              className="mt-3 w-full border border-[#E7B933] bg-[#E7B933] px-5 py-2.5 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
-            >
-              {canJoinArena
-                ? cooldownLeftMs > 0
-                  ? "쿨다운 중"
-                  : "한마디 던지기"
-                : "구경 중"}
-            </button>
-          </div>
-        </aside>
       </section>
+      ) : null}
       {relatedArenas.length > 0 ? (
         <section className="border border-white/10 bg-white/[0.035] p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -977,8 +850,8 @@ export default function ArenaDetailClient({
                     {item.title}
                   </div>
                   <div className="mt-2 text-xs font-bold text-zinc-500">
-                    {relatedStats.aPercent}:{relatedStats.bPercent} · 댓글{" "}
-                    {relatedStats.commentCount}
+                    참여 {relatedStats.totalVotes.toLocaleString()} · 댓글{" "}
+                    {relatedStats.displayCommentCount}
                   </div>
                 </a>
               );
@@ -986,74 +859,6 @@ export default function ArenaDetailClient({
           </div>
         </section>
       ) : null}
-      {isComposerOpen ? (
-        <div className="fixed inset-x-0 bottom-[74px] z-30 border-t border-white/10 bg-[#08090d]/98 p-3 shadow-2xl shadow-black/60 backdrop-blur lg:hidden">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-black text-zinc-400">
-              {selectedOption} 편으로 작성 중
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsComposerOpen(false)}
-              className="text-xs font-black text-zinc-500"
-            >
-              닫기
-            </button>
-          </div>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            disabled={!canJoinArena}
-            placeholder={draftPlaceholder}
-            className="min-h-24 w-full resize-none border border-white/10 bg-black/50 p-3 text-sm leading-relaxed text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
-            maxLength={500}
-          />
-          <div className="mt-2 flex items-center justify-between text-xs font-bold text-zinc-600">
-            <span>{draft.trim().length}/500</span>
-            <span>{cooldownLeftMs > 0 ? `${cooldownLeftSeconds}초 쿨다운` : "바로 작성 가능"}</span>
-          </div>
-        </div>
-      ) : null}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#08090d]/95 p-2 backdrop-blur">
-        <div className="mx-auto grid max-w-5xl grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
-          <div className="grid grid-cols-2 gap-1">
-            {(["A", "B"] as Side[]).map((side) => (
-              <button
-                key={side}
-                type="button"
-                onClick={() => voteForSide(side)}
-                disabled={!canJoinArena}
-                className={`min-h-10 border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                  selectedSide === side
-                    ? side === "A"
-                      ? SIDE_A_TONE.solid
-                      : SIDE_B_TONE.solid
-                    : "border-white/10 bg-black/40 text-zinc-400 hover:border-white/30"
-                }`}
-              >
-                {side === "A" ? arena.optionA : arena.optionB}
-              </button>
-            ))}
-          </div>
-          <input
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onFocus={() => setIsComposerOpen(true)}
-            disabled={!canJoinArena}
-            placeholder="한마디 남기기..."
-            className="min-h-10 w-full border border-white/10 bg-black/50 px-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600 focus:border-[#E7B933]/60 disabled:cursor-not-allowed disabled:opacity-60"
-            maxLength={500}
-            aria-label="하단 고정 댓글 입력"
-          />
-          <button
-            onClick={addComment}
-            disabled={!canSubmitComment}
-            className="min-h-10 border border-[#E7B933] bg-[#E7B933] px-4 text-sm font-black text-black transition hover:bg-[#F0D77A] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-zinc-500"
-          >
-            댓글쓰기
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

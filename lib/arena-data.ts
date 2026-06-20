@@ -80,8 +80,8 @@ export const reactionMeta: Record<
   { label: string; badge: string; active: string }
 > = {
   knockout: {
-    label: "반박마려움",
-    badge: "반박마려움",
+    label: "반박하기",
+    badge: "반박하기",
     active: "border-[#A53A4A] bg-[#A53A4A] text-white",
   },
   meme: {
@@ -90,8 +90,8 @@ export const reactionMeta: Record<
     active: "border-[#E7B933] bg-[#E7B933] text-black",
   },
   stretch: {
-    label: "개소리",
-    badge: "개소리",
+    label: "반대함",
+    badge: "반대함",
     active: "border-[#A53A4A] bg-[#A53A4A] text-white",
   },
   fact: {
@@ -864,8 +864,8 @@ export const getArenaBadge = (
   if (diff <= 10) return "박빙";
   if (arena.heat >= 98) return "지금 제일 불탐";
   if (stats.displayCommentCount >= 45) return "댓글 과열";
-  if (stats.aPercent >= 70) return "A진영 폭주";
-  if (stats.bPercent >= 70) return "B진영 반격";
+  if (stats.aPercent >= 70) return "A 우세";
+  if (stats.bPercent >= 70) return "B 우세";
   if (arena.status === "upcoming") return "예열 중";
 
   return "입 털기 좋음";
