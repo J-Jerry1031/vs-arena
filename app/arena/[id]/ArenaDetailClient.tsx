@@ -6,15 +6,12 @@ import type {
   Arena,
   ArenaComment,
   Side,
-  SortType,
 } from "@/lib/arena-data";
 import {
   arenas,
   emptyReactions,
   getArenaBadge,
-  getArenaHotComment,
   getArenaStats,
-  getCommentScore,
   getReactionTotal,
 } from "@/lib/arena-data";
 
@@ -23,19 +20,13 @@ type ArenaDetailClientProps = {
   initialComments: ArenaComment[];
 };
 
-type CommentTab = "new" | "popular" | "A" | "B";
+type CommentScope = "all" | Side;
+type CommentOrder = "new" | "popular";
 type MyParticipation = {
   arenaId: number;
   selectedSide: Side;
   commentIds: number[];
   lastVisitedAt: string;
-};
-
-const commentTabLabels: Record<CommentTab, string> = {
-  new: "최신 댓글",
-  popular: "인기 댓글",
-  A: "A진영 댓글",
-  B: "B진영 댓글",
 };
 
 const COMMENT_COOLDOWN_MS = 10_000;
@@ -123,8 +114,8 @@ export default function ArenaDetailClient({
   initialComments,
 }: ArenaDetailClientProps) {
   const [comments, setComments] = useState<ArenaComment[]>(initialComments);
-  const [sortType, setSortType] = useState<SortType>("new");
-  const [commentTab, setCommentTab] = useState<CommentTab>("new");
+  const [commentScope, setCommentScope] = useState<CommentScope>("all");
+  const [commentOrder, setCommentOrder] = useState<CommentOrder>("new");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
   const [votedSide, setVotedSide] = useState<Side | null>(null);
   const [nickname, setNickname] = useState("");
@@ -136,9 +127,11 @@ export default function ArenaDetailClient({
   const [now, setNow] = useState(0);
 
   const canJoinArena = arena.status !== "closed";
-  const arenaComments = comments.filter((comment) => comment.arenaId === arena.id);
+  const arenaComments = useMemo(
+    () => comments.filter((comment) => comment.arenaId === arena.id),
+    [arena.id, comments]
+  );
   const stats = getDetailWarMetrics(arena, comments);
-  const hotComment = getArenaHotComment(arena.id, comments);
   const badge = getArenaBadge(arena, comments);
   const hotBadges = getDetailHotBadges(arena, comments);
   const cooldownLeftMs =
@@ -234,30 +227,20 @@ export default function ArenaDetailClient({
     window.localStorage.setItem("vs_arena_nickname", nextNickname);
   };
 
-  const sortedComments = useMemo(() => {
-    const list = [...arenaComments];
+  const sideAComments = arenaComments.filter((comment) => comment.side === "A");
+  const sideBComments = arenaComments.filter((comment) => comment.side === "B");
+  const visibleComments = useMemo(() => {
+    const scoped =
+      commentScope === "all"
+        ? [...arenaComments]
+        : arenaComments.filter((comment) => comment.side === commentScope);
 
-    if (sortType === "new") {
-      return list.sort((a, b) => b.createdAt - a.createdAt);
-    }
-
-    if (sortType === "best") {
-      return list.sort((a, b) => b.likes - a.likes);
-    }
-
-    return list.sort((a, b) => getCommentScore(b) - getCommentScore(a));
-  }, [arenaComments, sortType]);
-
-  const sideAComments = sortedComments.filter((comment) => comment.side === "A");
-  const sideBComments = sortedComments.filter((comment) => comment.side === "B");
-  const visibleComments =
-    commentTab === "A"
-      ? sideAComments
-      : commentTab === "B"
-        ? sideBComments
-        : commentTab === "popular"
-          ? [...arenaComments].sort((a, b) => b.likes - a.likes)
-          : [...arenaComments].sort((a, b) => b.createdAt - a.createdAt);
+    return scoped.sort((a, b) =>
+      commentOrder === "popular"
+        ? b.likes - a.likes || b.createdAt - a.createdAt
+        : b.createdAt - a.createdAt
+    );
+  }, [arenaComments, commentOrder, commentScope]);
   const relatedArenas = arenas
     .filter((item) => item.id !== arena.id && item.category === arena.category)
     .slice(0, 3);
@@ -300,6 +283,8 @@ export default function ArenaDetailClient({
       ...current,
     ]);
     setFreshCommentIds((current) => new Set(current).add(commentId));
+    setCommentScope("all");
+    setCommentOrder("new");
     setVotedSide(selectedSide);
     persistParticipation(selectedSide, commentId);
     const submittedAt = Date.now();
@@ -309,7 +294,7 @@ export default function ArenaDetailClient({
       String(submittedAt)
     );
     setDraft("");
-    setAbuseNotice("댓글을 남겼어요.");
+    setAbuseNotice("댓글이 등록됐어.");
     window.setTimeout(() => {
       document
         .getElementById("comment-zone")
@@ -353,7 +338,7 @@ export default function ArenaDetailClient({
 
   const renderCommentCard = (comment: ArenaComment, index: number) => {
     const dislikes = Math.max(0, Math.floor((getReactionTotal(comment) - comment.likes / 3) / 2));
-    const isTopComment = comment.likes >= 90 && index === 0;
+    const isTopComment = commentOrder === "popular" && index === 0;
     const isFreshComment = freshCommentIds.has(comment.id);
     const timeLabel =
       comment.createdAt > 1_000_000_000_000
@@ -365,7 +350,7 @@ export default function ArenaDetailClient({
       <article
         key={comment.id}
         className={`border bg-white/[0.022] p-4 ${
-          index === 0 && sortType !== "new" ? "border-[#E7B933]/35" : "border-white/10"
+          isTopComment ? "border-[#E7B933]/25" : "border-white/[0.08]"
         }`}
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -568,99 +553,110 @@ export default function ArenaDetailClient({
                 </div>
               ) : null}
             </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_180px]">
-              <div className="bg-white/[0.025] px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
-                친구 의견도 궁금하다면 이 질문을 공유해보세요.
+          </div>
+        )}
+      </section>
+
+      {votedSide ? (
+        <section id="comment-zone" className="min-w-0 border border-white/10 bg-white/[0.018] p-4 sm:p-5">
+          <div>
+            <h2 className="text-xl font-black text-white">
+              댓글 {stats.displayComments.toLocaleString()}개
+            </h2>
+            <p className="mt-1 text-sm font-bold text-zinc-500">
+              다른 사람들은 왜 그쪽을 골랐을까?
+            </p>
+            <p className="mt-3 text-xs font-bold text-zinc-600">
+              A 의견 {sideAComments.length}개 · B 의견 {sideBComments.length}개
+            </p>
+          </div>
+
+          <div className="mt-4 flex gap-2 overflow-x-auto border-y border-white/[0.08] py-3">
+            {([
+              { value: "all", label: "전체" },
+              { value: "A", label: "A 의견" },
+              { value: "B", label: "B 의견" },
+            ] as const).map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setCommentScope(filter.value)}
+                aria-pressed={commentScope === filter.value}
+                className={`shrink-0 px-3 py-2 text-xs font-black transition ${
+                  commentScope === filter.value
+                    ? "bg-white text-black"
+                    : "bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+            <span aria-hidden="true" className="w-px shrink-0 bg-white/10" />
+            {([
+              { value: "new", label: "최신순" },
+              { value: "popular", label: "인기순" },
+            ] as const).map((order) => (
+              <button
+                key={order.value}
+                type="button"
+                onClick={() => setCommentOrder(order.value)}
+                aria-pressed={commentOrder === order.value}
+                className={`shrink-0 px-3 py-2 text-xs font-black transition ${
+                  commentOrder === order.value
+                    ? "bg-[#E7B933] text-black"
+                    : "bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {order.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {visibleComments.length > 0 ? (
+              visibleComments.map((comment, index) => renderCommentCard(comment, index))
+            ) : (
+              <div className="border border-dashed border-white/10 px-4 py-10 text-center">
+                <p className="font-black text-zinc-300">아직 댓글이 없어.</p>
+                <p className="mt-1 text-sm font-bold text-zinc-600">첫 의견을 남겨봐.</p>
               </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {votedSide ? (
+        <section className="border border-white/[0.08] bg-white/[0.018] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-black text-white">친구는 뭐 고를까?</h2>
+              <p className="mt-1 text-xs font-bold text-zinc-600">
+                이 질문을 보내고 서로의 선택을 확인해보세요.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:w-auto sm:min-w-[290px]">
               <button
                 type="button"
                 onClick={copyArenaLink}
-                className="border border-white/15 px-4 py-3 text-sm font-black text-zinc-300 transition hover:border-white/35 hover:text-white"
+                className="min-h-11 border border-white/15 px-4 text-sm font-black text-zinc-300 transition hover:border-white/35 hover:text-white"
               >
                 링크 복사
               </button>
               <button
                 type="button"
                 onClick={shareArena}
-                className="border border-[#E7B933]/45 bg-[#E7B933]/12 px-4 py-3 text-sm font-black text-[#F0D77A] transition hover:bg-[#E7B933] hover:text-black"
+                className="min-h-11 border border-[#E7B933]/35 px-4 text-sm font-black text-[#F0D77A] transition hover:border-[#E7B933]/65"
               >
-                친구에게 공유하기
+                공유하기
               </button>
             </div>
-            {shareNotice ? (
-              <div className="mt-2 border border-[#E7B933]/35 bg-[#E7B933]/10 px-4 py-2 text-xs font-black text-[#F0D77A]">
-                {shareNotice}
-              </div>
-            ) : null}
           </div>
-        )}
-      </section>
-
-      {votedSide && hotComment ? (
-        <section className={`border p-4 sm:p-5 ${ACCENT_TONE}`}>
-          <div className="text-sm font-black">
-            현재 경기 하이라이트
-          </div>
-          <p className="mt-3 text-lg font-black leading-relaxed text-white sm:text-xl">
-            &ldquo;{hotComment.text}&rdquo;
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-zinc-400">
-            <span>{hotComment.nickname}</span>
-            <span>추천 {hotComment.likes}</span>
-            <span>관전 점수 {getCommentScore(hotComment)}</span>
-          </div>
+          {shareNotice ? (
+            <div className="mt-3 text-xs font-black text-[#F0D77A]" role="status" aria-live="polite">
+              {shareNotice}
+            </div>
+          ) : null}
         </section>
-      ) : null}
-
-      {votedSide ? (
-      <section className="min-w-0">
-        <section id="comment-zone" className="min-w-0 space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-lg font-black text-white">
-                갈리는 댓글 현장
-              </h2>
-              <p className="mt-1 text-xs font-bold text-zinc-600">
-                다른 사람은 왜 그쪽을 골랐는지 확인해보세요.
-              </p>
-            </div>
-            <div className="grid w-full grid-cols-2 border border-white/10 bg-black/25 p-1 sm:w-auto sm:min-w-[420px] sm:grid-cols-4">
-              {(["new", "popular", "A", "B"] as CommentTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setCommentTab(tab);
-                    setSortType(tab === "popular" ? "best" : "new");
-                  }}
-                  className={`px-3 py-2 text-xs font-black transition ${
-                    commentTab === tab
-                      ? "bg-[#E7B933] text-black"
-                      : "text-zinc-500 hover:text-zinc-200"
-                  }`}
-                >
-                  {commentTabLabels[tab]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3 border border-white/10 bg-white/[0.02] p-3">
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-black">
-              <div className={`border px-2 py-3 ${SIDE_A_TONE.border} ${SIDE_A_TONE.bg} ${SIDE_A_TONE.text}`}>
-                A진영 {sideAComments.length}
-              </div>
-              <div className={`border px-2 py-3 ${SIDE_B_TONE.border} ${SIDE_B_TONE.bg} ${SIDE_B_TONE.text}`}>
-                B진영 {sideBComments.length}
-              </div>
-              <div className={`border px-2 py-3 ${ACCENT_TONE}`}>
-                댓글 {stats.displayComments.toLocaleString()}
-              </div>
-            </div>
-            {visibleComments.map((comment, index) => renderCommentCard(comment, index))}
-          </div>
-        </section>
-
-      </section>
       ) : null}
       {votedSide && relatedArenas.length > 0 ? (
         <section className="border border-white/10 bg-white/[0.035] p-4">
