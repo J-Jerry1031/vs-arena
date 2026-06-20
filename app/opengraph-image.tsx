@@ -41,7 +41,10 @@ export default function Image() {
             VS ARENA
           </div>
           <div style={{ maxWidth: 930, fontSize: 42, lineHeight: 1.25, color: "#d8d8df" }}>
-            요즘 사람들 생각이 갈리는 질문들. 너라면 어느 쪽이야?
+            사람들은 뭘 선택했을까?
+          </div>
+          <div style={{ maxWidth: 930, fontSize: 28, lineHeight: 1.35, color: "#92929d" }}>
+            A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.
           </div>
         </div>
         <div style={{ display: "flex", gap: 18, fontSize: 30, fontWeight: 900 }}>

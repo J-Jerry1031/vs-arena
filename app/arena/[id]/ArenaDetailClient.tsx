@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type {
   Arena,
@@ -23,7 +24,6 @@ type ArenaDetailClientProps = {
 };
 
 type CommentTab = "new" | "popular" | "A" | "B";
-type LocalReaction = "fact" | "stretch" | "knockout" | "funny" | "meme";
 type MyParticipation = {
   arenaId: number;
   selectedSide: Side;
@@ -70,14 +70,6 @@ const nicknameSeeds = [
   "감정과몰입러",
   "AI상담불신자",
 ];
-const reactionButtons: { type: LocalReaction; label: string }[] = [
-  { type: "fact", label: "인정" },
-  { type: "stretch", label: "반대함" },
-  { type: "knockout", label: "반박하기" },
-  { type: "funny", label: "웃김" },
-  { type: "meme", label: "논리승" },
-];
-
 const generateNickname = () =>
   nicknameSeeds[Math.floor(Math.random() * nicknameSeeds.length)];
 
@@ -137,9 +129,6 @@ export default function ArenaDetailClient({
   const [votedSide, setVotedSide] = useState<Side | null>(null);
   const [nickname, setNickname] = useState("");
   const [draft, setDraft] = useState("");
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [likedCommentIds, setLikedCommentIds] = useState<Set<number>>(new Set());
-  const [reactedKeys, setReactedKeys] = useState<Set<string>>(new Set());
   const [freshCommentIds, setFreshCommentIds] = useState<Set<number>>(new Set());
   const [lastCommentAt, setLastCommentAt] = useState(0);
   const [abuseNotice, setAbuseNotice] = useState("");
@@ -166,8 +155,6 @@ export default function ArenaDetailClient({
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    const liked = window.localStorage.getItem("vs-arena-liked-comments");
-    const reacted = window.localStorage.getItem("vs-arena-reacted-keys");
     const lastAt = window.localStorage.getItem(`vs-arena-last-comment-${arena.id}`);
     const savedNickname = window.localStorage.getItem("vs_arena_nickname");
     const savedVote = window.localStorage.getItem(`vs_arena_vote_${arena.id}`) as Side | null;
@@ -182,14 +169,6 @@ export default function ArenaDetailClient({
       if (savedVote === "A" || savedVote === "B") {
         setSelectedSide(savedVote);
         setVotedSide(savedVote);
-      }
-
-      if (liked) {
-        setLikedCommentIds(new Set(JSON.parse(liked) as number[]));
-      }
-
-      if (reacted) {
-        setReactedKeys(new Set(JSON.parse(reacted) as string[]));
       }
 
       if (lastAt) {
@@ -338,94 +317,9 @@ export default function ArenaDetailClient({
     }, 0);
   };
 
-  const likeComment = (id: number) => {
-    if (likedCommentIds.has(id)) {
-      setAbuseNotice("추천은 한 댓글에 한 번만 가능해요.");
-      return;
-    }
-
-    setComments((current) =>
-      current.map((comment) =>
-        comment.id === id ? { ...comment, likes: comment.likes + 1 } : comment
-      )
-    );
-    setLikedCommentIds((current) => {
-      const next = new Set(current);
-      next.add(id);
-      window.localStorage.setItem(
-        "vs-arena-liked-comments",
-        JSON.stringify([...next])
-      );
-      return next;
-    });
-  };
-
-  const reactToComment = (id: number, reaction: LocalReaction) => {
-    const key = `${id}:${reaction}`;
-
-    if (reactedKeys.has(key)) {
-      setAbuseNotice("같은 반응은 한 번만 남길 수 있어요.");
-      return;
-    }
-
-    setComments((current) =>
-      current.map((comment) =>
-        comment.id === id
-          ? {
-              ...comment,
-              reactions: {
-                ...comment.reactions,
-                [reaction]: comment.reactions[reaction] + 1,
-              },
-            }
-          : comment
-      )
-    );
-    setReactedKeys((current) => {
-      const next = new Set(current);
-      next.add(key);
-      window.localStorage.setItem(
-        "vs-arena-reacted-keys",
-        JSON.stringify([...next])
-      );
-      return next;
-    });
-  };
-
-  const prepareReply = (comment: ArenaComment) => {
-    const replySide = comment.side === "A" ? "B" : "A";
-    const shortQuote =
-      comment.text.length > 42 ? `${comment.text.slice(0, 42)}...` : comment.text;
-
-    setSelectedSide(replySide);
-    setVotedSide(replySide);
-    setDraft(
-      `"${shortQuote}" 이 말에 답글: `
-    );
-    window.setTimeout(() => {
-      document
-        .getElementById("quick-comment")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 0);
-  };
-
-  const toggleExpanded = (id: number) => {
-    setExpandedIds((current) => {
-      const next = new Set(current);
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      return next;
-    });
-  };
-
   const shareArena = async () => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = `“${arena.title}”\n너는 어느 쪽임?\nVS Arena에서 투표해봐\n${url}`;
+    const text = `“${arena.title}”\n너라면 어느 쪽이야?\nVS Arena에서 투표해봐\n${url}`;
 
     try {
       if (navigator.share) {
@@ -440,16 +334,25 @@ export default function ArenaDetailClient({
         setShareNotice("질문 링크를 복사했어요.");
       }
     } catch {
-      setShareNotice("공유가 취소됐어요. 링크 복사는 언제든 다시 가능함.");
+      setShareNotice("공유가 취소됐어요.");
+    }
+
+    window.setTimeout(() => setShareNotice(""), 2600);
+  };
+
+  const copyArenaLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/arena/${arena.id}`);
+      setShareNotice("링크가 복사됐어.");
+    } catch {
+      setShareNotice("복사에 실패했어. 주소창에서 직접 복사해줘.");
     }
 
     window.setTimeout(() => setShareNotice(""), 2600);
   };
 
   const renderCommentCard = (comment: ArenaComment, index: number) => {
-    const isExpanded = expandedIds.has(comment.id);
     const dislikes = Math.max(0, Math.floor((getReactionTotal(comment) - comment.likes / 3) / 2));
-    const replies = Math.max(0, Math.floor((comment.likes + getReactionTotal(comment)) / 18));
     const isTopComment = comment.likes >= 90 && index === 0;
     const isFreshComment = freshCommentIds.has(comment.id);
     const timeLabel =
@@ -461,106 +364,34 @@ export default function ArenaDetailClient({
     return (
       <article
         key={comment.id}
-        className={`border bg-white/[0.028] transition hover:border-white/20 ${
+        className={`border bg-white/[0.022] p-4 ${
           index === 0 && sortType !== "new" ? "border-[#E7B933]/35" : "border-white/10"
         }`}
       >
-        <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
-          <button
-            onClick={() => toggleExpanded(comment.id)}
-            className="min-w-0 text-left"
-          >
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className={`border px-2 py-1 text-xs font-black ${sideTone.border} ${sideTone.bg} ${sideTone.text}`}>
-                {comment.side === "A" ? arena.optionA : arena.optionB}
-              </span>
-              {isTopComment ? (
-                <span className={`border px-2 py-1 text-xs font-black ${ACCENT_TONE}`}>
-                  상위 댓글
-                </span>
-              ) : null}
-              {isFreshComment ? (
-                <span className="border border-[#E7B933]/45 bg-[#E7B933] px-2 py-1 text-xs font-black text-black">
-                  방금 작성
-                </span>
-              ) : null}
-              <span className="text-sm font-bold text-zinc-300">
-                {comment.nickname}
-              </span>
-              <span className="text-xs font-bold text-zinc-600">{timeLabel}</span>
-            </div>
-
-            <p className="line-clamp-2 leading-relaxed text-zinc-100">
-              {comment.text}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-600">
-              <span>공감 {comment.likes}</span>
-              <span>비공감 {dislikes}</span>
-              <span>답글 {replies}</span>
-              {isExpanded ? <span>접기</span> : null}
-            </div>
-          </button>
-
-          <div className="grid grid-cols-3 gap-1 text-xs font-black sm:grid-cols-2">
-            {reactionButtons.map((reaction) => (
-              <button
-                key={reaction.type}
-                onClick={() =>
-                  reaction.type === "fact"
-                    ? likeComment(comment.id)
-                    : reactToComment(comment.id, reaction.type)
-                }
-                className={`border px-2 py-2 transition ${
-                  reaction.type === "fact"
-                    ? `${ACCENT_TONE} hover:bg-[#E7B933] hover:text-black`
-                    : "border-white/10 bg-black/25 text-zinc-300 hover:border-white/30"
-                }`}
-              >
-                {reaction.label}
-              </button>
-            ))}
-            <button
-              onClick={() => prepareReply(comment)}
-              className="border border-white/10 bg-black/25 px-2 py-2 text-zinc-300 transition hover:border-[#E7B933]/60 hover:text-[#F0D77A]"
-            >
-              답글 {replies}
-            </button>
-          </div>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className={`border px-2 py-1 text-xs font-black ${sideTone.border} ${sideTone.bg} ${sideTone.text}`}>
+            {comment.side} 선택 · {comment.side === "A" ? arena.optionA : arena.optionB}
+          </span>
+          {isTopComment ? (
+            <span className={`border px-2 py-1 text-xs font-black ${ACCENT_TONE}`}>
+              대표 의견
+            </span>
+          ) : null}
+          {isFreshComment ? (
+            <span className="border border-[#E7B933]/45 bg-[#E7B933] px-2 py-1 text-xs font-black text-black">
+              방금 작성
+            </span>
+          ) : null}
+          <span className="text-sm font-bold text-zinc-300">{comment.nickname}</span>
+          <span className="text-xs font-bold text-zinc-600">{timeLabel}</span>
         </div>
-
-        {isExpanded ? (
-          <div className="border-t border-white/10 bg-black/20 p-4">
-            <p className="whitespace-pre-wrap leading-relaxed text-zinc-100">
-              {comment.text}
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-1 sm:grid-cols-5">
-              {reactionButtons.map((reaction) => (
-                <button
-                  key={reaction.type}
-                  onClick={() =>
-                    reaction.type === "fact"
-                      ? likeComment(comment.id)
-                      : reactToComment(comment.id, reaction.type)
-                  }
-                  className="min-h-10 border border-white/10 bg-black/25 px-2 text-xs font-black text-zinc-400 transition hover:border-[#E7B933]/50 hover:text-[#F0D77A]"
-                >
-                  <span className="block">{reaction.label}</span>
-                  <span className="block text-[10px] opacity-75">
-                    {reaction.type === "fact"
-                      ? comment.likes
-                      : comment.reactions[reaction.type]}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => toggleExpanded(comment.id)}
-              className="mt-3 text-xs font-black text-zinc-500 transition hover:text-zinc-200"
-            >
-              접기
-            </button>
-          </div>
-        ) : null}
+        <p className="whitespace-pre-wrap break-words leading-relaxed text-zinc-100">
+          {comment.text}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-600">
+          <span>공감 {comment.likes}</span>
+          <span>비공감 {dislikes}</span>
+        </div>
       </article>
     );
   };
@@ -693,6 +524,7 @@ export default function ArenaDetailClient({
             </div>
             <div id="quick-comment" className="mt-5">
               <h3 className="text-base font-black text-white">왜 이쪽을 골랐어?</h3>
+              <p className="mt-1 text-xs font-bold text-zinc-500">한 줄만 남겨도 좋아.</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_130px]">
                 <input
                   value={nickname}
@@ -736,10 +568,17 @@ export default function ArenaDetailClient({
                 </div>
               ) : null}
             </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_220px]">
-              <div className="border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
+            <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_180px]">
+              <div className="bg-white/[0.025] px-4 py-3 text-xs font-bold leading-relaxed text-zinc-400">
                 친구 의견도 궁금하다면 이 질문을 공유해보세요.
               </div>
+              <button
+                type="button"
+                onClick={copyArenaLink}
+                className="border border-white/15 px-4 py-3 text-sm font-black text-zinc-300 transition hover:border-white/35 hover:text-white"
+              >
+                링크 복사
+              </button>
               <button
                 type="button"
                 onClick={shareArena}
@@ -769,13 +608,6 @@ export default function ArenaDetailClient({
             <span>{hotComment.nickname}</span>
             <span>추천 {hotComment.likes}</span>
             <span>관전 점수 {getCommentScore(hotComment)}</span>
-            <button
-              onClick={() => setSelectedSide(hotComment.side === "A" ? "B" : "A")}
-              disabled={!canJoinArena}
-              className="w-full border border-white/10 px-3 py-2 text-xs font-black text-zinc-300 transition hover:border-[#E7B933]/60 hover:text-[#F0D77A] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:w-auto sm:py-1.5"
-            >
-              이 댓글에 반박하기
-            </button>
           </div>
         </section>
       ) : null}
@@ -830,7 +662,7 @@ export default function ArenaDetailClient({
 
       </section>
       ) : null}
-      {relatedArenas.length > 0 ? (
+      {votedSide && relatedArenas.length > 0 ? (
         <section className="border border-white/10 bg-white/[0.035] p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-black text-white">관련 VS 추천</h2>
@@ -841,7 +673,7 @@ export default function ArenaDetailClient({
               const relatedStats = getArenaStats(item, comments);
 
               return (
-                <a
+                <Link
                   key={item.id}
                   href={`/arena/${item.id}`}
                   className="border border-white/10 bg-black/25 p-3 transition hover:border-[#E7B933]/45"
@@ -853,10 +685,16 @@ export default function ArenaDetailClient({
                     참여 {relatedStats.totalVotes.toLocaleString()} · 댓글{" "}
                     {relatedStats.displayCommentCount}
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>
+          <Link
+            href={`/arena/${relatedArenas[0].id}`}
+            className="mt-4 block min-h-12 border border-[#E7B933]/45 px-4 py-3 text-center text-sm font-black text-[#F0D77A] transition hover:bg-[#E7B933] hover:text-black"
+          >
+            다음 VS 보기
+          </Link>
         </section>
       ) : null}
     </div>

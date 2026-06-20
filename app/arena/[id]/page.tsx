@@ -25,7 +25,8 @@ export async function generateMetadata({
   }
 
   const title = `${arena.title} | VS Arena`;
-  const description = "너는 어느 쪽임? VS Arena에서 투표하고 댓글로 참전해보세요.";
+  const description =
+    "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.";
   const url = `/arena/${arena.id}`;
 
   return {

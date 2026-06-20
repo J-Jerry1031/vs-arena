@@ -490,38 +490,41 @@ export default function Home() {
             </div>
           )}
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <button
-              type="button"
-              onClick={() => copyLink(featuredArena)}
-              className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
-            >
-              링크 복사
-            </button>
-            <button
-              type="button"
-              onClick={() => shareToKakao(featuredArena)}
-              className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
-            >
-              카카오톡 공유
-            </button>
-            <button
-              type="button"
-              onClick={() => shareToX(featuredArena)}
-              className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
-            >
-              X 공유
-            </button>
-            <button
-              type="button"
-              onClick={nextArena}
-              className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
-            >
-              다음 아레나 보기
-            </button>
-          </div>
+          {selectedSide ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              <button
+                type="button"
+                onClick={() => copyLink(featuredArena)}
+                className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
+              >
+                링크 복사
+              </button>
+              <button
+                type="button"
+                onClick={() => shareToKakao(featuredArena)}
+                className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
+              >
+                공유하기
+              </button>
+              <button
+                type="button"
+                onClick={() => shareToX(featuredArena)}
+                className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
+              >
+                X 공유
+              </button>
+              <button
+                type="button"
+                onClick={nextArena}
+                className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
+              >
+                다음 아레나 보기
+              </button>
+            </div>
+          ) : null}
         </section>
 
+        {selectedSide ? (
         <section className="grid gap-4 py-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="border border-white/10 bg-[#11141c] p-4">
             <h2 className="text-lg font-black text-white">대표 의견</h2>
@@ -556,6 +559,7 @@ export default function Home() {
             </div>
           </div>
         </section>
+        ) : null}
 
         <nav className="flex gap-2 overflow-x-auto border-y border-white/10 py-3">
           {homeCategories.map((category) => (
@@ -585,7 +589,9 @@ export default function Home() {
                 가볍게 고르고 바로 사람들 생각 보기
               </p>
             </div>
-            <span className="text-xs font-black text-zinc-600">탭 3개만 유지</span>
+            <span className="text-xs font-black text-zinc-600">
+              {categoryArenas.length}개 아레나
+            </span>
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {categoryArenas.slice(0, 6).map((arena) => (

@@ -3,12 +3,14 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vs-arena-two.vercel.app"),
-  title: "VS Arena - 둘 중 하나를 고르는 소셜 투표",
-  description: "요즘 사람들 생각이 갈리는 질문들. 너라면 어느 쪽인지 한 표 던져보세요.",
+  title: "VS Arena - 둘 중 하나만 골라",
+  description:
+    "요즘 사람들 생각이 갈리는 질문들. A/B 중 하나를 고르고 다른 사람들의 선택을 확인해보세요.",
   openGraph: {
     type: "website",
-    title: "VS Arena",
-    description: "요즘 사람들 생각이 갈리는 질문들. 너라면 어느 쪽인가요?",
+    title: "VS Arena - 사람들은 뭘 선택했을까?",
+    description:
+      "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.",
     url: "https://vs-arena-two.vercel.app/",
     siteName: "VS Arena",
     locale: "ko_KR",
@@ -23,8 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "VS Arena",
-    description: "요즘 사람들 생각이 갈리는 질문들. 너라면 어느 쪽인가요?",
+    title: "VS Arena - 사람들은 뭘 선택했을까?",
+    description:
+      "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.",
     images: ["/opengraph-image"],
   },
   icons: {
