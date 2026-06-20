@@ -75,7 +75,7 @@ const getLatestComments = (arenaId: number, localComments: LocalComment[] = [], 
     .slice(0, limit);
 
 const makeShareText = (arena: Arena) =>
-  `${arena.optionA} vs ${arena.optionB}\n너라면 뭐 고름?\nVS Arena에서 투표하기`;
+  `나는 골랐는데, 너는 뭐 고를래? ${arena.optionA} vs ${arena.optionB}`;
 
 const trackHomeEvent = (
   name: HomeEventName,
@@ -245,6 +245,7 @@ export default function Home() {
       side: selectedSide,
       nickname: nickname.trim() || "익명",
       text: commentText.trim(),
+      score: 0,
       likes: 0,
       reactions: {
         knockout: 0,
@@ -277,9 +278,9 @@ export default function Home() {
     }
   };
 
-  const shareToKakao = async (arena: Arena) => {
+  const shareToFriend = async (arena: Arena) => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = `${makeShareText(arena)}\n${url}`;
+    const text = makeShareText(arena);
 
     if (navigator.share) {
       try {
@@ -287,14 +288,16 @@ export default function Home() {
         trackHomeEvent("share", arena.id, { channel: "native" });
         showToast("공유창을 열었어");
         return;
-      } catch {
-        showToast("공유가 취소됐어");
-        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          showToast("공유가 취소됐어");
+          return;
+        }
       }
     }
 
     await copyLink(arena);
-    showToast("카카오톡에 붙여넣을 링크를 복사했어");
+    showToast("공유 기능 대신 링크를 복사했어");
   };
 
   const shareToX = (arena: Arena) => {
@@ -501,10 +504,10 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => shareToKakao(featuredArena)}
+                onClick={() => shareToFriend(featuredArena)}
                 className="border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-zinc-200 transition hover:border-[#E7B933]/50"
               >
-                공유하기
+                친구에게 물어보기
               </button>
               <button
                 type="button"

@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const SITE_URL = "https://vs-arena-two.vercel.app";
+const DEFAULT_OG_IMAGE = `${SITE_URL}/opengraph-image?v=2`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vs-arena-two.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: "VS Arena - 둘 중 하나만 골라",
   description:
     "요즘 사람들 생각이 갈리는 질문들. A/B 중 하나를 고르고 다른 사람들의 선택을 확인해보세요.",
@@ -11,12 +14,12 @@ export const metadata: Metadata = {
     title: "VS Arena - 사람들은 뭘 선택했을까?",
     description:
       "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.",
-    url: "https://vs-arena-two.vercel.app/",
+    url: `${SITE_URL}/`,
     siteName: "VS Arena",
     locale: "ko_KR",
     images: [
       {
-        url: "/opengraph-image",
+        url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
         alt: "VS Arena",
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
     title: "VS Arena - 사람들은 뭘 선택했을까?",
     description:
       "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.",
-    images: ["/opengraph-image"],
+    images: [DEFAULT_OG_IMAGE],
   },
   icons: {
     icon: [

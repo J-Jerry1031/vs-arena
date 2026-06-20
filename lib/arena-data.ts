@@ -40,6 +40,7 @@ export type ArenaComment = {
   side: Side;
   nickname: string;
   text: string;
+  score: number;
   likes: number;
   reactions: Record<ReactionType, number>;
   createdAt: number;
@@ -539,13 +540,13 @@ export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => {
   return {
     ...arena,
     heat,
-    spectators: seededNumber(arena.id * 13 + arena.heat, 20, 400),
-    commentsCount: seededNumber(arena.id * 17 + heat, 5, 80),
-    recentCommentsCount: seededNumber(arena.id * 19 + heat, 1, 8),
-    recentVotesCount: seededNumber(arena.id * 23 + heat, 10, 90),
+    spectators: seededNumber(arena.id * 13 + arena.heat, 12, 180),
+    commentsCount: 0,
+    recentCommentsCount: seededNumber(arena.id * 19 + heat, 1, 6),
+    recentVotesCount: seededNumber(arena.id * 23 + heat, 4, 36),
     leftPercent,
     rightPercent: 100 - leftPercent,
-    totalVotes: seededNumber(arena.id * 29 + heat, 48, 640),
+    totalVotes: seededNumber(arena.id * 29 + heat, 42, 280),
   };
 });
 
@@ -693,48 +694,93 @@ const generatedReactions = (
   seed: number,
   sideOffset: number
 ): Record<ReactionType, number> => ({
-  knockout: 2 + ((seed + sideOffset) % 9),
-  meme: 3 + ((seed * 2 + sideOffset) % 13),
+  knockout: 1 + ((seed + sideOffset) % 5),
+  meme: 1 + ((seed * 2 + sideOffset) % 6),
   stretch: (seed + sideOffset) % 4,
-  fact: 4 + ((seed * 3 + sideOffset) % 12),
-  funny: 2 + ((seed * 5 + sideOffset) % 14),
+  fact: 1 + ((seed * 3 + sideOffset) % 6),
+  funny: 1 + ((seed * 5 + sideOffset) % 6),
 });
 
 const generatedNicknames = [
-  "현실파견병",
-  "댓글잠복러",
-  "한줄저격수",
-  "민심감별사",
-  "반박대기조",
-  "퇴근후참전",
-  "팩트보다감정",
-  "구경하다빡침",
+  "현실파",
+  "경험담수집가",
+  "선택장애",
+  "칼퇴수호자",
+  "멘탈우선",
+  "돈이먼저",
+  "연애탐정",
+  "느린답장러",
+  "커피중독",
+  "라면파",
+  "오프라인공포",
+  "연결피로",
+  "혼자잘놈",
+  "친구소중",
+  "생활비계산기",
+  "장기전파",
+  "오늘만산다",
+  "후회최소화",
+  "주말사수",
+  "직접겪어봄",
+  "감정과몰입",
+  "팩트체크중",
+  "잠이보약",
+  "통장잔고",
+  "퇴근후생각",
+  "관계거리두기",
+  "취향존중",
+  "고민끝",
+  "일단살고봄",
+  "선택은내몫",
+  "루틴중요",
+  "한줄의견",
 ];
 
-const generatedAComments = [
-  (arena: Arena) => `${arena.optionA}. 말 길게 할수록 지는 주제임. 그냥 이쪽이 덜 피곤함.`,
-  (arena: Arena) => `난 ${arena.optionA}. ${arena.optionB} 쪽 고르면 나중에 혼자 이불킥할 그림이 보임.`,
-  (arena: Arena) => `${arena.optionA} 쪽은 재미없어 보여도 후회가 적음. 후회 적은 게 은근 최강임.`,
-  (arena: Arena) => `${arena.optionB} 좋아 보이는 건 인정. 근데 내 돈, 내 시간 걸리면 ${arena.optionA} 누름.`,
-  (arena: Arena) => `${arena.optionA} 싫다던 사람도 자기 차례 오면 표정 바로 바뀔 듯.`,
-  (arena: Arena) => `${arena.optionA} 쪽은 드립 빼고 봐도 버틸 만함. 그게 생각보다 큼.`,
-  (arena: Arena) => `${arena.optionA} 안 고르면 하루 종일 찝찝함. 답은 이미 몸이 알고 있음.`,
-  (arena: Arena) => `${arena.optionA} 쪽은 최소한 나중에 남 탓은 안 하게 됨.`,
-  (arena: Arena) => `${arena.optionA} 쪽은 안전벨트 느낌이고 ${arena.optionB} 쪽은 창문 열고 달리는 느낌임.`,
-  (arena: Arena) => `${arena.optionA} 편 든다. 이유? 끝나고 잠은 잘 올 것 같아서.`,
+const hasFinalConsonant = (text: string) => {
+  const lastCode = text.trim().charCodeAt(text.trim().length - 1);
+
+  return lastCode >= 0xac00 && lastCode <= 0xd7a3
+    ? (lastCode - 0xac00) % 28 !== 0
+    : false;
+};
+
+const withParticle = (text: string, consonant: string, vowel: string) =>
+  `${text}${hasFinalConsonant(text) ? consonant : vowel}`;
+
+const asTopic = (text: string) => withParticle(text, "은", "는");
+const asSubject = (text: string) => withParticle(text, "이", "가");
+const asObject = (text: string) => withParticle(text, "을", "를");
+const asDirection = (text: string) => withParticle(text, "으로", "로");
+const asCondition = (text: string) => withParticle(text, "이라면", "라면");
+
+const generatedAComments: Array<(arena: Arena) => string> = [
+  (arena) => `이 질문은 ${arena.optionA} 쪽. 당장 편한 것보다 나중에 후회가 덜 남는 선택 같음.`,
+  (arena) => `${arena.optionB}도 이해는 가는데 내 시간과 돈이 걸리면 결국 ${asObject(arena.optionA)} 고를 듯.`,
+  (arena) => `${arena.title} 상황을 실제로 겪는다면 ${arena.optionA}. 머리보다 생활 패턴이 먼저 답을 줌.`,
+  (arena) => `처음엔 ${asSubject(arena.optionB)} 끌렸는데 오래 생각할수록 ${asSubject(arena.optionA)} 버티기 쉬워 보임.`,
+  (arena) => `${asTopic(arena.optionA)} 적어도 선택한 이유를 다음 날의 나한테 설명할 수 있음.`,
+  (arena) => `${arena.openingLine}. 그래서 나는 계산 끝에 ${arena.optionA} 쪽으로 감.`,
+  (arena) => `주변에서는 ${asSubject(arena.optionB)} 많았는데 직접 겪어본 뒤로는 ${asDirection(arena.optionA)} 바뀜.`,
+  (arena) => `${arena.optionA}. 거창한 이유보다 이쪽이 내 일상을 덜 망가뜨릴 것 같아서.`,
+  (arena) => `${arena.optionB} 고르면 순간은 편하겠지만 한 달 뒤까지 생각하면 ${asSubject(arena.optionA)} 맞음.`,
+  (arena) => `이건 취향보다 감당 가능한 대가 문제임. 나는 ${arena.optionA}의 대가가 더 납득됨.`,
+  (arena) => `${arena.optionA} 선택. 막상 닥치면 사람은 멋보다 익숙하게 버틸 수 있는 쪽을 고르게 됨.`,
+  (arena) => `친구랑 얘기하면 늘 갈리는데 나는 계속 ${arena.optionA}. 아직 반대편 말에 마음이 안 움직임.`,
 ];
 
-const generatedBComments = [
-  (arena: Arena) => `${arena.optionB}지. ${arena.optionA} 쪽은 듣자마자 솔깃한데 뒷맛이 너무 셈.`,
-  (arena: Arena) => `나는 ${arena.optionB}. 커뮤니티에선 조용한 선택이 실제론 제일 세더라.`,
-  (arena: Arena) => `${arena.optionA} 고르면 순간은 시원함. 근데 다음날의 내가 욕할 듯.`,
-  (arena: Arena) => `${arena.optionB}는 당장은 심심한데, 막상 고르면 제일 덜 흔들릴 선택임.`,
-  (arena: Arena) => `솔직히 ${arena.optionA} 쪽은 밈으로 좋고, ${arena.optionB} 쪽은 생활로 좋음.`,
-  (arena: Arena) => `${arena.optionB} 편. 이건 멋보다 멘탈 관리 문제임.`,
-  (arena: Arena) => `${arena.optionA} 쪽은 박수 받고 끝, ${arena.optionB} 쪽은 다음 주까지 살아남음.`,
-  (arena: Arena) => `${arena.optionB} 무시하면 꼭 나중에 그 선택지가 생각남.`,
-  (arena: Arena) => `${arena.optionB} 쪽은 소리 없이 강한 타입임. 막상 골라보면 티 남.`,
-  (arena: Arena) => `${arena.optionB} 쪽이 덜 자극적이라 그렇지, 실제론 이게 더 무서움.`,
+const generatedBComments: Array<(arena: Arena) => string> = [
+  (arena) => `${asTopic(arena.optionA)} 듣자마자 솔깃한데 실제 생활에 넣어보면 ${asSubject(arena.optionB)} 더 현실적임.`,
+  (arena) => `나는 ${arena.optionB}. 선택하고 나서 계속 신경 쓰이는 쪽은 피하고 싶음.`,
+  (arena) => `${asCondition(arena.title)} ${asObject(arena.optionB)} 고르겠음. 짧게 보면 손해 같아도 오래 가는 쪽이 중요함.`,
+  (arena) => `${asObject(arena.optionA)} 한 번 겪어봤는데 생각보다 대가가 컸음. 다음엔 무조건 ${arena.optionB}.`,
+  (arena) => `${asTopic(arena.optionB)} 화려하진 않아도 내 기준에서는 가장 솔직한 선택임.`,
+  (arena) => `${arena.openingLine}. 이 조건이면 나는 망설이지 않고 ${arena.optionB} 쪽.`,
+  (arena) => `말로는 ${arena.optionA}가 멋있는데 월요일 아침의 나는 분명 ${arena.optionB}를 누를 거임.`,
+  (arena) => `${arena.optionB}. 결국 사람은 좋은 선택보다 감당할 수 있는 선택으로 돌아오더라.`,
+  (arena) => `${arena.optionA} 쪽 논리도 맞지만 내 경험에서는 ${asSubject(arena.optionB)} 결과가 더 나았음.`,
+  (arena) => `이건 정답보다 우선순위 차이 같음. 내 우선순위는 확실히 ${arena.optionB}.`,
+  (arena) => `${arena.optionB} 선택. 나중에 마음이 바뀌어도 지금 기준으로는 이쪽이 덜 무리임.`,
+  (arena) => `둘 다 쉽진 않은데 굳이 하나라면 ${arena.optionB}. 적어도 잠은 편하게 잘 것 같음.`,
 ];
 
 const getGeneratedPair = (arena: Arena): SamplePair => {
@@ -757,40 +803,110 @@ const getGeneratedPair = (arena: Arena): SamplePair => {
   };
 };
 
-export const initialComments: ArenaComment[] = arenas.flatMap(
+const prominentArenaCommentCounts = new Map<number, number>([
+  [4, 16],
+  [3, 14],
+  [9, 12],
+  [10, 12],
+  [33, 12],
+  [45, 12],
+  [55, 12],
+  [58, 12],
+  [63, 14],
+  [64, 14],
+  [69, 12],
+  [72, 12],
+  [73, 14],
+  [113, 12],
+  [114, 14],
+  [115, 12],
+  [117, 12],
+]);
+
+const seedMinutesAgo = [3, 7, 12, 18, 25, 34, 46, 61, 83, 110, 145, 190, 255, 340, 460, 620];
+const seedCreatedAt = Date.now();
+
+export const getSeedCommentCount = (arenaId: number) =>
+  prominentArenaCommentCounts.get(arenaId) ?? 8 + (arenaId % 3);
+
+const seededComments: ArenaComment[] = arenas.flatMap(
   (arena, index) => {
     const pair = samplePairs[arena.id] ?? getGeneratedPair(arena);
+    const commentCount = getSeedCommentCount(arena.id);
 
-    return [
-    {
-      id: index * 2 + 1,
-      arenaId: arena.id,
-      side: "A",
-      nickname: pair.a[0],
-      text: pair.a[1],
-      likes: pair.a[2],
-      reactions: pair.a[3],
-      createdAt: index * 2 + 1,
-    },
-    {
-      id: index * 2 + 2,
-      arenaId: arena.id,
-      side: "B",
-      nickname: pair.b[0],
-      text: pair.b[1],
-      likes: pair.b[2],
-      reactions: pair.b[3],
-      createdAt: index * 2 + 2,
-    },
-  ];
+    return Array.from({ length: commentCount }, (_, commentIndex) => {
+      const side: Side = commentIndex % 2 === 0 ? "A" : "B";
+      const pairComment = side === "A" ? pair.a : pair.b;
+      const sideIndex = Math.floor(commentIndex / 2);
+      const templates = side === "A" ? generatedAComments : generatedBComments;
+      const template = templates[(arena.id * 3 + sideIndex) % templates.length];
+      const score =
+        commentIndex < 2
+          ? 12 + (pairComment[2] % 25)
+          : 6 + seededNumber(arena.id * 41 + commentIndex * 13, 0, 24);
+
+      return {
+        id: index * 100 + commentIndex + 1,
+        arenaId: arena.id,
+        side,
+        nickname:
+          commentIndex < 2
+            ? pairComment[0]
+            : generatedNicknames[(arena.id * 5 + commentIndex * 7) % generatedNicknames.length],
+        text: commentIndex < 2 ? pairComment[1] : template(arena),
+        score,
+        likes: score,
+        reactions:
+          commentIndex < 2
+            ? pairComment[3]
+            : generatedReactions(arena.id + commentIndex, side === "A" ? 1 : 2),
+        createdAt:
+          seedCreatedAt -
+          (seedMinutesAgo[commentIndex] + (arena.id % 4)) * 60_000,
+      };
+    });
   }
 );
+
+const seedTextCounts = seededComments.reduce((counts, comment) => {
+  counts.set(comment.text, (counts.get(comment.text) ?? 0) + 1);
+  return counts;
+}, new Map<string, number>());
+
+const repeatedSeedTexts = new Set(
+  [...seedTextCounts]
+    .filter(([, count]) => count > 1)
+    .map(([text]) => text)
+);
+
+const duplicateContextPhrases = [
+  "첫인상대로 골라도 결론은 같았음.",
+  "며칠 고민해도 이쪽일 것 같음.",
+  "내 생활에 대입하면 답이 더 선명함.",
+  "친구한테 물어봐도 내 선택은 안 바뀜.",
+  "조건을 다시 읽어도 같은 쪽을 누르겠음.",
+  "막상 닥쳐도 이 선택을 할 자신 있음.",
+];
+const repeatedTextOffsets = new Map<string, number>();
+
+export const initialComments: ArenaComment[] = seededComments.map((comment) => {
+  if (!repeatedSeedTexts.has(comment.text)) return comment;
+
+  const arena = arenas.find((item) => item.id === comment.arenaId);
+  const offset = repeatedTextOffsets.get(comment.text) ?? 0;
+  repeatedTextOffsets.set(comment.text, offset + 1);
+
+  return {
+    ...comment,
+    text: `${comment.text} ‘${arena?.title ?? "이 질문"}’ 기준. ${duplicateContextPhrases[offset % duplicateContextPhrases.length]}`,
+  };
+});
 
 export const getReactionTotal = (comment: ArenaComment) =>
   reactionOrder.reduce((total, reaction) => total + comment.reactions[reaction], 0);
 
 export const getCommentScore = (comment: ArenaComment) =>
-  comment.likes + getReactionTotal(comment);
+  comment.score ?? comment.likes ?? 0;
 
 export const getTopReaction = (comment: ArenaComment) => {
   const topReaction = reactionOrder.reduce((top, reaction) =>
@@ -838,13 +954,13 @@ export const getArenaStats = (
     0
   );
   const heatScore =
-    arena.heat * 2 + arena.spectators / 20 + arena.commentsCount * 5 + reactionScore;
+    arena.heat * 2 + arena.spectators / 20 + targetComments.length * 5 + reactionScore;
 
   return {
     aPercent,
     bPercent: 100 - aPercent,
     commentCount: targetComments.length,
-    displayCommentCount: arena.commentsCount + Math.max(0, targetComments.length - initialComments.filter((comment) => comment.arenaId === arena.id).length),
+    displayCommentCount: targetComments.length,
     recentComments: arena.recentCommentsCount,
     recentVotes: arena.recentVotesCount,
     totalVotes: arena.totalVotes + localA + localB,

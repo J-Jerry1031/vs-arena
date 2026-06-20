@@ -12,7 +12,6 @@ import {
   emptyReactions,
   getArenaBadge,
   getArenaStats,
-  getReactionTotal,
 } from "@/lib/arena-data";
 
 type ArenaDetailClientProps = {
@@ -68,7 +67,7 @@ const getDetailWarMetrics = (arena: Arena, comments: ArenaComment[]) => {
   const stats = getArenaStats(arena, comments);
   const arenaComments = comments.filter((comment) => comment.arenaId === arena.id);
   const reactionScore = arenaComments.reduce(
-    (sum, comment) => sum + getReactionTotal(comment),
+    (sum, comment) => sum + comment.score,
     0
   );
 
@@ -237,7 +236,7 @@ export default function ArenaDetailClient({
 
     return scoped.sort((a, b) =>
       commentOrder === "popular"
-        ? b.likes - a.likes || b.createdAt - a.createdAt
+        ? b.score - a.score || b.createdAt - a.createdAt
         : b.createdAt - a.createdAt
     );
   }, [arenaComments, commentOrder, commentScope]);
@@ -276,6 +275,7 @@ export default function ArenaDetailClient({
         side: selectedSide,
         nickname: nickname.trim() || "익명의 논객",
         text,
+        score: 0,
         likes: 0,
         reactions: emptyReactions(),
         createdAt: Date.now(),
@@ -304,22 +304,37 @@ export default function ArenaDetailClient({
 
   const shareArena = async () => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = `“${arena.title}”\n너라면 어느 쪽이야?\nVS Arena에서 투표해봐\n${url}`;
+    const text = `나는 골랐는데, 너는 뭐 고를래? ${arena.optionA} vs ${arena.optionB}`;
+
+    if (!navigator.share) {
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        setShareNotice("공유 기능을 지원하지 않는 환경이라 링크를 복사했어.");
+      } catch {
+        setShareNotice("복사에 실패했어. 주소창에서 직접 복사해줘.");
+      }
+      window.setTimeout(() => setShareNotice(""), 2600);
+      return;
+    }
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `${arena.title} | VS Arena`,
-          text,
-          url,
-        });
-        setShareNotice("공유창을 열었어요.");
+      await navigator.share({
+        title: `${arena.title} | VS Arena`,
+        text,
+        url,
+      });
+      setShareNotice("공유창을 열었어.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setShareNotice("공유가 취소됐어.");
       } else {
-        await navigator.clipboard.writeText(text);
-        setShareNotice("질문 링크를 복사했어요.");
+        try {
+          await navigator.clipboard.writeText(`${text}\n${url}`);
+          setShareNotice("공유 대신 링크를 복사했어.");
+        } catch {
+          setShareNotice("공유에 실패했어. 링크 복사를 이용해줘.");
+        }
       }
-    } catch {
-      setShareNotice("공유가 취소됐어요.");
     }
 
     window.setTimeout(() => setShareNotice(""), 2600);
@@ -337,13 +352,15 @@ export default function ArenaDetailClient({
   };
 
   const renderCommentCard = (comment: ArenaComment, index: number) => {
-    const dislikes = Math.max(0, Math.floor((getReactionTotal(comment) - comment.likes / 3) / 2));
     const isTopComment = commentOrder === "popular" && index === 0;
     const isFreshComment = freshCommentIds.has(comment.id);
+    const minutesAgo = Math.max(0, Math.floor((now - comment.createdAt) / 60_000));
     const timeLabel =
-      comment.createdAt > 1_000_000_000_000
+      minutesAgo < 1
         ? "방금 전"
-        : `${Math.max(1, 45 - comment.createdAt)}분 전`;
+        : minutesAgo < 60
+          ? `${minutesAgo}분 전`
+          : `${Math.floor(minutesAgo / 60)}시간 전`;
     const sideTone = comment.side === "A" ? SIDE_A_TONE : SIDE_B_TONE;
 
     return (
@@ -373,10 +390,6 @@ export default function ArenaDetailClient({
         <p className="whitespace-pre-wrap break-words leading-relaxed text-zinc-100">
           {comment.text}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-600">
-          <span>공감 {comment.likes}</span>
-          <span>비공감 {dislikes}</span>
-        </div>
       </article>
     );
   };
@@ -629,9 +642,9 @@ export default function ArenaDetailClient({
         <section className="border border-white/[0.08] bg-white/[0.018] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-sm font-black text-white">친구는 뭐 고를까?</h2>
+              <h2 className="text-sm font-black text-white">친구는 어느 쪽일까?</h2>
               <p className="mt-1 text-xs font-bold text-zinc-600">
-                이 질문을 보내고 서로의 선택을 확인해보세요.
+                이 질문은 혼자 고르기 아깝다. 링크 보내고 친구 선택도 확인해봐.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:w-auto sm:min-w-[290px]">
@@ -647,7 +660,7 @@ export default function ArenaDetailClient({
                 onClick={shareArena}
                 className="min-h-11 border border-[#E7B933]/35 px-4 text-sm font-black text-[#F0D77A] transition hover:border-[#E7B933]/65"
               >
-                공유하기
+                친구에게 물어보기
               </button>
             </div>
           </div>
@@ -666,7 +679,7 @@ export default function ArenaDetailClient({
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             {relatedArenas.map((item) => {
-              const relatedStats = getArenaStats(item, comments);
+              const relatedStats = getArenaStats(item);
 
               return (
                 <Link

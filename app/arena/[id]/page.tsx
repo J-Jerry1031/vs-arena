@@ -1,8 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { arenas, initialComments } from "@/lib/arena-data";
+import { arenas, getArenaComments } from "@/lib/arena-data";
 import ArenaDetailClient from "./ArenaDetailClient";
+
+const SITE_URL = "https://vs-arena-two.vercel.app";
+const OG_VERSION = "2";
 
 type ArenaPageProps = {
   params: Promise<{ id: string }>;
@@ -26,8 +29,9 @@ export async function generateMetadata({
 
   const title = `${arena.title} | VS Arena`;
   const description =
-    "A/B 중 하나를 고르고, 다른 사람들의 선택과 의견을 확인해보세요.";
-  const url = `/arena/${arena.id}`;
+    "너라면 어느 쪽? A/B 중 하나를 고르고 사람들의 선택을 확인해보세요.";
+  const url = `${SITE_URL}/arena/${arena.id}`;
+  const imageUrl = `${SITE_URL}/api/og/arena/${arena.id}?v=${OG_VERSION}`;
 
   return {
     title,
@@ -39,10 +43,10 @@ export async function generateMetadata({
       url,
       images: [
         {
-          url: "/opengraph-image",
+          url: imageUrl,
           width: 1200,
           height: 630,
-          alt: "VS Arena",
+          alt: `${arena.title} A/B 선택 이미지`,
         },
       ],
     },
@@ -50,7 +54,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: [imageUrl],
     },
   };
 }
@@ -76,7 +80,7 @@ export default async function ArenaPage({ params }: ArenaPageProps) {
           </div>
         </header>
 
-        <ArenaDetailClient arena={arena} initialComments={initialComments} />
+        <ArenaDetailClient arena={arena} initialComments={getArenaComments(arena.id)} />
       </div>
     </main>
   );
