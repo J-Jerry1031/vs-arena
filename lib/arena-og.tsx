@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import type { Arena } from "@/lib/arena-data";
+import { getArenaShareTitle } from "@/lib/arena-share";
 
 export const OG_IMAGE_SIZE = {
   width: 1200,
@@ -13,7 +14,7 @@ const getOptionFontSize = (text: string) => {
 };
 
 export const renderArenaOgImage = (arena?: Arena) => {
-  const title = arena?.title ?? "둘 중 하나만 골라.";
+  const title = arena ? getArenaShareTitle(arena) : "둘 중 하나만 골라.";
   const optionA = arena?.optionA ?? "내 선택 고르기";
   const optionB = arena?.optionB ?? "사람들 선택 보기";
 

@@ -13,6 +13,7 @@ import {
   getCommentScore,
   initialComments,
 } from "@/lib/arena-data";
+import { getArenaShareText, getArenaShareTitle } from "@/lib/arena-share";
 
 type HomeCategory = {
   id: string;
@@ -74,9 +75,6 @@ const getLatestComments = (arenaId: number, localComments: LocalComment[] = [], 
   getArenaComments(arenaId, localComments)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit);
-
-const makeShareText = (arena: Arena) =>
-  `나는 골랐는데, 너는 뭐 고를래? ${arena.optionA} vs ${arena.optionB}`;
 
 const trackHomeEvent = (
   name: HomeEventName,
@@ -292,7 +290,7 @@ export default function Home() {
     const url = `${window.location.origin}/arena/${arena.id}`;
 
     try {
-      await navigator.clipboard.writeText(`${makeShareText(arena)}\n${url}`);
+      await navigator.clipboard.writeText(`${getArenaShareText(arena)}\n${url}`);
       trackHomeEvent("share", arena.id, { channel: "copy" });
       showToast("링크가 복사됐어");
     } catch {
@@ -302,11 +300,11 @@ export default function Home() {
 
   const shareToFriend = async (arena: Arena) => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = makeShareText(arena);
+    const text = getArenaShareText(arena);
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${arena.title} | VS Arena`, text, url });
+        await navigator.share({ title: getArenaShareTitle(arena), text, url });
         trackHomeEvent("share", arena.id, { channel: "native" });
         showToast("공유창을 열었어");
         return;
@@ -324,7 +322,7 @@ export default function Home() {
 
   const shareToX = (arena: Arena) => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = makeShareText(arena);
+    const text = getArenaShareText(arena);
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 
     trackHomeEvent("share", arena.id, { channel: "x" });

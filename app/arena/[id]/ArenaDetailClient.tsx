@@ -15,6 +15,7 @@ import {
   getArenaStats,
   getArenaStatsWithLocalComments,
 } from "@/lib/arena-data";
+import { getArenaShareText, getArenaShareTitle } from "@/lib/arena-share";
 
 type ArenaDetailClientProps = {
   arena: Arena;
@@ -323,7 +324,7 @@ export default function ArenaDetailClient({
 
   const shareArena = async () => {
     const url = `${window.location.origin}/arena/${arena.id}`;
-    const text = `나는 골랐는데, 너는 뭐 고를래? ${arena.optionA} vs ${arena.optionB}`;
+    const text = getArenaShareText(arena);
 
     if (!navigator.share) {
       try {
@@ -338,7 +339,7 @@ export default function ArenaDetailClient({
 
     try {
       await navigator.share({
-        title: `${arena.title} | VS Arena`,
+        title: getArenaShareTitle(arena),
         text,
         url,
       });

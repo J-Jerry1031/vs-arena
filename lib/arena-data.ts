@@ -702,37 +702,37 @@ const generatedReactions = (
 
 const generatedNicknames = [
   "현실파",
-  "경험담수집가",
+  "퇴근요정",
   "선택장애",
-  "칼퇴수호자",
-  "멘탈우선",
-  "돈이먼저",
-  "연애탐정",
-  "느린답장러",
+  "1년만버팀",
+  "멘탈먼저",
+  "돈이급함",
+  "연애초보",
+  "답장기다림",
   "커피중독",
   "라면파",
-  "오프라인공포",
-  "연결피로",
+  "와이파이중독",
+  "알림꺼둠",
   "혼자잘놈",
-  "친구소중",
-  "생활비계산기",
-  "장기전파",
-  "오늘만산다",
-  "후회최소화",
-  "주말사수",
-  "직접겪어봄",
-  "감정과몰입",
-  "팩트체크중",
+  "친구둘이면충분",
+  "월세무서움",
+  "퇴사각",
+  "오늘만봄",
+  "후회싫음",
+  "주말만기다림",
+  "해봤음",
+  "과몰입중",
+  "일단의심",
   "잠이보약",
-  "통장잔고",
-  "퇴근후생각",
-  "관계거리두기",
-  "취향존중",
-  "고민끝",
-  "일단살고봄",
-  "선택은내몫",
-  "루틴중요",
-  "한줄의견",
+  "통장수호자",
+  "퇴근길",
+  "거리두는중",
+  "그럴수있지",
+  "아직고민중",
+  "일단살자",
+  "내맘임",
+  "루틴파",
+  "지나가던사람",
 ];
 
 const hasFinalConsonant = (text: string) => {
@@ -749,53 +749,133 @@ const withParticle = (text: string, consonant: string, vowel: string) =>
 const asTopic = (text: string) => withParticle(text, "은", "는");
 const asSubject = (text: string) => withParticle(text, "이", "가");
 const asObject = (text: string) => withParticle(text, "을", "를");
-const asDirection = (text: string) => withParticle(text, "으로", "로");
-const asCondition = (text: string) => withParticle(text, "이라면", "라면");
 
 const generatedAComments: Array<(arena: Arena) => string> = [
-  (arena) => `이 질문은 ${arena.optionA} 쪽. 당장 편한 것보다 나중에 후회가 덜 남는 선택 같음.`,
-  (arena) => `${arena.optionB}도 이해는 가는데 내 시간과 돈이 걸리면 결국 ${asObject(arena.optionA)} 고를 듯.`,
-  (arena) => `${arena.title} 상황을 실제로 겪는다면 ${arena.optionA}. 머리보다 생활 패턴이 먼저 답을 줌.`,
-  (arena) => `처음엔 ${asSubject(arena.optionB)} 끌렸는데 오래 생각할수록 ${asSubject(arena.optionA)} 버티기 쉬워 보임.`,
-  (arena) => `${asTopic(arena.optionA)} 적어도 선택한 이유를 다음 날의 나한테 설명할 수 있음.`,
-  (arena) => `${arena.openingLine}. 그래서 나는 계산 끝에 ${arena.optionA} 쪽으로 감.`,
-  (arena) => `주변에서는 ${asSubject(arena.optionB)} 많았는데 직접 겪어본 뒤로는 ${asDirection(arena.optionA)} 바뀜.`,
-  (arena) => `${arena.optionA}. 거창한 이유보다 이쪽이 내 일상을 덜 망가뜨릴 것 같아서.`,
-  (arena) => `${arena.optionB} 고르면 순간은 편하겠지만 한 달 뒤까지 생각하면 ${asSubject(arena.optionA)} 맞음.`,
-  (arena) => `이건 취향보다 감당 가능한 대가 문제임. 나는 ${arena.optionA}의 대가가 더 납득됨.`,
-  (arena) => `${arena.optionA} 선택. 막상 닥치면 사람은 멋보다 익숙하게 버틸 수 있는 쪽을 고르게 됨.`,
-  (arena) => `친구랑 얘기하면 늘 갈리는데 나는 계속 ${arena.optionA}. 아직 반대편 말에 마음이 안 움직임.`,
+  (arena) => `솔직히 ${arena.optionA}. 이유 길게 쓰려다 그냥 이게 내 답임.`,
+  (arena) => `${arena.optionB} 골랐다가 후회해본 적 있어서 이번엔 ${arena.optionA}.`,
+  (arena) => `내 주변은 다 ${arena.optionB}라는데 나는 혼자 ${arena.optionA} 누름 ㅋㅋ`,
+  (arena) => `${asTopic(arena.optionA)} 적어도 다음 날의 나한테 변명은 가능함.`,
+  (arena) => `이건 좀 고민했는데 막상 닥치면 ${asObject(arena.optionA)} 고를 듯.`,
+  (arena) => `${arena.optionA}. 생각보다 사람은 익숙한 불편을 잘 버팀.`,
+  (arena) => `해봤는데 ${asSubject(arena.optionA)} 낫더라. 말로 볼 때랑 진짜 다름.`,
+  (arena) => `친구는 ${arena.optionB} 쪽이라는데 그 말 듣고 더 ${arena.optionA} 쪽으로 감.`,
+  (arena) => `${arena.optionA} 쪽. 거창한 신념 없고 그냥 내 일상이 덜 피곤함.`,
+  (arena) => `처음엔 반대였는데 한 달까지 생각하니까 ${arena.optionA}.`,
+  (arena) => `${arena.optionA} 고르고 후회할래. ${arena.optionB}는 시작부터 자신 없음.`,
+  (arena) => `ㄹㅇ 이건 ${arena.optionA}. 반대쪽도 이해는 가는데 나는 못 함.`,
 ];
 
 const generatedBComments: Array<(arena: Arena) => string> = [
-  (arena) => `${asTopic(arena.optionA)} 듣자마자 솔깃한데 실제 생활에 넣어보면 ${asSubject(arena.optionB)} 더 현실적임.`,
-  (arena) => `나는 ${arena.optionB}. 선택하고 나서 계속 신경 쓰이는 쪽은 피하고 싶음.`,
-  (arena) => `${asCondition(arena.title)} ${asObject(arena.optionB)} 고르겠음. 짧게 보면 손해 같아도 오래 가는 쪽이 중요함.`,
-  (arena) => `${asObject(arena.optionA)} 한 번 겪어봤는데 생각보다 대가가 컸음. 다음엔 무조건 ${arena.optionB}.`,
-  (arena) => `${asTopic(arena.optionB)} 화려하진 않아도 내 기준에서는 가장 솔직한 선택임.`,
-  (arena) => `${arena.openingLine}. 이 조건이면 나는 망설이지 않고 ${arena.optionB} 쪽.`,
-  (arena) => `말로는 ${arena.optionA}가 멋있는데 월요일 아침의 나는 분명 ${arena.optionB}를 누를 거임.`,
-  (arena) => `${arena.optionB}. 결국 사람은 좋은 선택보다 감당할 수 있는 선택으로 돌아오더라.`,
-  (arena) => `${arena.optionA} 쪽 논리도 맞지만 내 경험에서는 ${asSubject(arena.optionB)} 결과가 더 나았음.`,
-  (arena) => `이건 정답보다 우선순위 차이 같음. 내 우선순위는 확실히 ${arena.optionB}.`,
-  (arena) => `${arena.optionB} 선택. 나중에 마음이 바뀌어도 지금 기준으로는 이쪽이 덜 무리임.`,
-  (arena) => `둘 다 쉽진 않은데 굳이 하나라면 ${arena.optionB}. 적어도 잠은 편하게 잘 것 같음.`,
+  (arena) => `${arena.optionA} 말은 멋있지. 근데 현실의 나는 ${arena.optionB}임.`,
+  (arena) => `나는 ${arena.optionB}. 한 번 겪어보면 왜 이쪽인지 바로 앎.`,
+  (arena) => `${asObject(arena.optionA)} 해봤는데 생각보다 오래 감. 다시면 ${arena.optionB}.`,
+  (arena) => `${arena.optionB} 누르고 마음 편하게 잘래. 그게 제일 큼.`,
+  (arena) => `다들 ${arena.optionA} 쪽이라는데 나는 왜 ${asSubject(arena.optionB)} 더 끌리냐.`,
+  (arena) => `${asTopic(arena.optionB)} 재미는 없어도 사고는 덜 칠 것 같음.`,
+  (arena) => `개인적으로 ${arena.optionB}. 나중 일보다 오늘 버티는 게 먼저임.`,
+  (arena) => `${arena.optionA} 선택한 사람들 대단함. 나는 그냥 ${arena.optionB} 쪽 갈게.`,
+  (arena) => `처음 5초는 ${arena.optionA}, 생각 좀 하면 ${arena.optionB}.`,
+  (arena) => `${arena.optionB}. 내 주변 실제 사례 보고 마음 굳힘.`,
+  (arena) => `이거 은근 갈리네 ㅋㅋ 그래도 나는 ${arena.optionB}.`,
+  (arena) => `둘 다 싫은데 꼭 고르라면 ${arena.optionB}. 덜 후회할 듯.`,
 ];
 
-const getGeneratedPair = (arena: Arena): SamplePair => {
-  const aIndex = seededNumber(arena.id * 7, 0, generatedAComments.length - 1);
-  const bIndex = seededNumber(arena.id * 11, 0, generatedBComments.length - 1);
+type CommentPack = { A: string[]; B: string[] };
 
+const representativeCommentPacks: Partial<Record<number, CommentPack>> = {
+  3: {
+    A: [
+      "좋아하면 화장실 가서라도 답장함.",
+      "하루 넘게 안 보면 관심도 같이 퇴근한 거 아님?",
+      "바쁜 건 이해함. 근데 매번 바쁜 건 그냥 순위가 낮은 거지.",
+      "답장 말고 다른 사람 스토리는 잘 보더라. 거기서 끝남.",
+      "나도 느린 편인데 좋아하는 사람 톡은 이상하게 바로 보임 ㅋㅋ",
+      "칼답까지는 안 바라는데 반나절은 좀 그렇잖아.",
+      "처음엔 성격인 줄 알았는데 나한테만 느렸음. 경험담임.",
+    ],
+    B: [
+      "답장 속도로 마음 재면 연애가 아니라 출석체크임.",
+      "느린 사람은 진짜 다 느림. 배달앱 알림도 하루 뒤에 봄.",
+      "머릿속으로 답장하고 실제 전송 안 하는 사람 여기 있음.",
+      "칼답만 사랑이면 나는 평생 무성애자임 ㅋㅋ",
+      "중요한 건 속도보다 내용임. 1분 만에 ㅇㅇ 오는 게 더 싫음.",
+      "일할 때 폰 아예 안 보는 사람도 있음. 다 관심 없음으로 몰면 피곤함.",
+      "나한테도 느리고 엄마한테도 느림. 그냥 그런 인간 맞음.",
+    ],
+  },
+  4: {
+    A: [
+      "500 받고 울면서 택시 타고 퇴근할 듯.",
+      "300 마음 평화라는데 월세 내면 평화 바로 사라짐.",
+      "지금 300인데 마음도 안 평화로움… 그럼 500 갈래.",
+      "월급날만큼은 상사 얼굴이 흐릿해질 것 같음.",
+      "1년만 버티고 퇴사각 잡으면 됨. 일단 종잣돈부터.",
+      "눈빛은 원래 없었고 통장이라도 있어야 함.",
+      "500이면 야근 후 배달에 택시까지 가능. 300 야근이 진짜 공포임.",
+      "솔직히 돈 급한 시기엔 워라밸도 사치더라. 딱 2년만 가능.",
+    ],
+    B: [
+      "돈보다 잠이 먼저라는 걸 야근하면서 배웠음.",
+      "1년 버틴다는 사람들 보통 3개월 뒤에 눈빛 사라짐.",
+      "500 받아서 병원비랑 배달비로 200 쓰면 뭐가 남냐.",
+      "퇴근 후 내 시간이 있어야 돈 쓸 힘도 생김.",
+      "둘 다 해봤는데 500 스트레스는 주말까지 따라옴.",
+      "300도 상사가 이상하면 300 지옥인 건 인정. 그래도 칼퇴는 지킴.",
+      "통장 잔고보다 일요일 저녁 심장 두근거림이 더 무서움.",
+      "내가 퇴사한 이유가 딱 이거였음. 다시 가도 300.",
+    ],
+  },
+  10: {
+    A: [
+      "사진 사기는 만나는 순간 신뢰부터 마이너스임.",
+      "대화 노잼은 집에 가면 끝나는데 사진 사기는 계속 생각남.",
+      "각도 차이는 이해함. 본인 아닌 수준이면 장르가 다름.",
+      "카페 문 열고 서로 못 알아본 적 있음. 그날 이후 사진 봄.",
+      "말 잘 통해도 첫 10분 동안 보정 앱만 생각날 듯.",
+      "노잼은 긴장해서 그럴 수도 있음. 사진은 이미 준비한 거잖아.",
+    ],
+    B: [
+      "사진은 적응이라도 하지. 대화 노잼은 두 시간이 안 감.",
+      "질문 세 번 했는데 단답 세 번 오면 집 가고 싶음.",
+      "사진보다 침묵이 더 무서움. 얼음 녹는 소리까지 들림.",
+      "외모는 보다 보면 괜찮아지는데 재미없는 건 점점 더 재미없음.",
+      "소개팅에서 내가 혼자 진행자 된 적 있음. 다시는 못 함.",
+      "사진 사기여도 웃기면 다음 약속 가능. 노잼은 첫날 종료.",
+    ],
+  },
+  73: {
+    A: [
+      "친구 없어도 인터넷엔 사람 많음. 쓰고 보니 좀 슬프네.",
+      "와이파이 하루 끊겨도 불안한데 평생은 진짜 못 함.",
+      "인터넷 없으면 일도 취미도 은행도 다 막힘. 현실적으로 불가.",
+      "친구는 온라인에서 만들면 되잖아. 어? 인터넷이 없네.",
+      "지도 없이 길 찾는 것부터 못 함. 친구한테 전화하면 되나…",
+      "오프라인 취미 만들면 된다는데 그 취미 검색을 어디서 함 ㅋㅋ",
+      "친구 0명도 무섭지만 인터넷 0은 생활 자체가 1998년 됨.",
+    ],
+    B: [
+      "친구는 적어도 되는데 0명은 다른 얘기임.",
+      "인터넷이 위로는 해줘도 아플 때 죽 사다 주진 못함.",
+      "혼자 잘 노는 편인데도 평생 0명은 멘탈 갈릴 듯.",
+      "온라인 사람 백 명보다 전화할 사람 한 명이 더 필요할 때가 있음.",
+      "인터넷 없이도 살았던 시절은 있는데 친구 없이 산 적은 없음.",
+      "이거 인터넷 고른 사람들 일주일 뒤에 사람 찾아다닐 듯.",
+      "친구 둘이면 충분하다는 말이지 0명이 괜찮다는 말은 아님.",
+    ],
+  },
+};
+
+const getGeneratedPair = (arena: Arena): SamplePair => {
   return {
     a: [
       generatedNicknames[seededNumber(arena.id * 3, 0, generatedNicknames.length - 1)],
-      generatedAComments[aIndex](arena),
+      `${arena.optionA} 쪽. 첫 느낌대로 눌렀는데 다시 봐도 안 바뀜.`,
       8 + (arena.id % 34),
       generatedReactions(arena.id, 1),
     ],
     b: [
       generatedNicknames[seededNumber(arena.id * 5 + 1, 0, generatedNicknames.length - 1)],
-      generatedBComments[bIndex](arena),
+      `${arena.optionB}. 주변에서 비슷한 일 겪는 거 보고 이쪽으로 마음 굳힘.`,
       7 + ((arena.id * 3) % 36),
       generatedReactions(arena.id, 2),
     ],
@@ -831,6 +911,7 @@ export const getSeedCommentCount = (arenaId: number) =>
 const seededComments: ArenaComment[] = arenas.flatMap(
   (arena, index) => {
     const pair = samplePairs[arena.id] ?? getGeneratedPair(arena);
+    const representativePack = representativeCommentPacks[arena.id];
     const commentCount = getSeedCommentCount(arena.id);
 
     return Array.from({ length: commentCount }, (_, commentIndex) => {
@@ -841,8 +922,9 @@ const seededComments: ArenaComment[] = arenas.flatMap(
       const template = templates[(arena.id * 3 + sideIndex) % templates.length];
       const score =
         commentIndex < 2
-          ? 12 + (pairComment[2] % 25)
-          : 6 + seededNumber(arena.id * 41 + commentIndex * 13, 0, 24);
+          ? pairComment[2]
+          : 4 + seededNumber(arena.id * 41 + commentIndex * 13, 0, 42);
+      const representativeText = representativePack?.[side][sideIndex];
 
       return {
         id: index * 100 + commentIndex + 1,
@@ -852,7 +934,7 @@ const seededComments: ArenaComment[] = arenas.flatMap(
           commentIndex < 2
             ? pairComment[0]
             : generatedNicknames[(arena.id * 5 + commentIndex * 7) % generatedNicknames.length],
-        text: commentIndex < 2 ? pairComment[1] : template(arena),
+        text: representativeText ?? (commentIndex < 2 ? pairComment[1] : template(arena)),
         score,
         likes: score,
         reactions:
@@ -878,13 +960,13 @@ const repeatedSeedTexts = new Set(
     .map(([text]) => text)
 );
 
-const duplicateContextPhrases = [
-  "첫인상대로 골라도 결론은 같았음.",
-  "며칠 고민해도 이쪽일 것 같음.",
-  "내 생활에 대입하면 답이 더 선명함.",
-  "친구한테 물어봐도 내 선택은 안 바뀜.",
-  "조건을 다시 읽어도 같은 쪽을 누르겠음.",
-  "막상 닥쳐도 이 선택을 할 자신 있음.",
+const duplicateContextPhrases: Array<(arena: Arena) => string> = [
+  (arena: Arena) => `반대가 ${arena.optionB}여도 안 바뀜.`,
+  (arena: Arena) => `친구는 ${arena.optionB} 쪽이라는데 나는 그대로임.`,
+  (arena: Arena) => `${arena.optionA} 쪽 얘기라 더 공감됐음.`,
+  () => `이 질문에서는 유독 이쪽임.`,
+  (arena: Arena) => `${arena.optionB}도 봤는데 마음 안 움직임.`,
+  () => `막상 닥쳐도 같은 쪽 누를 듯.`,
 ];
 const repeatedTextOffsets = new Map<string, number>();
 
@@ -897,7 +979,11 @@ export const initialComments: ArenaComment[] = seededComments.map((comment) => {
 
   return {
     ...comment,
-    text: `${comment.text} ‘${arena?.title ?? "이 질문"}’ 기준. ${duplicateContextPhrases[offset % duplicateContextPhrases.length]}`,
+    text: `${comment.text} ${
+      arena
+        ? duplicateContextPhrases[offset % duplicateContextPhrases.length](arena)
+        : "이 질문에서는 유독 이쪽임."
+    }`,
   };
 });
 

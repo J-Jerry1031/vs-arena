@@ -2,6 +2,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { arenas, getArenaComments } from "@/lib/arena-data";
+import {
+  ARENA_SHARE_DESCRIPTION,
+  getArenaOgTitle,
+} from "@/lib/arena-share";
 import ArenaDetailClient from "./ArenaDetailClient";
 
 const SITE_URL = "https://vs-arena-two.vercel.app";
@@ -27,9 +31,8 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${arena.title} | VS Arena`;
-  const description =
-    "너라면 어느 쪽? A/B 중 하나를 고르고 사람들의 선택을 확인해보세요.";
+  const title = getArenaOgTitle(arena);
+  const description = ARENA_SHARE_DESCRIPTION;
   const url = `${SITE_URL}/arena/${arena.id}`;
   const imageUrl = `${SITE_URL}/api/og/arena/${arena.id}?v=${OG_VERSION}`;
 

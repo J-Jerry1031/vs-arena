@@ -1,10 +1,21 @@
 // @ts-expect-error Node type stripping requires the explicit TypeScript extension.
 import { arenas, getArenaStats, initialComments } from "../lib/arena-data.ts";
+// @ts-expect-error Node type stripping requires the explicit TypeScript extension.
+import { getArenaShareTitle } from "../lib/arena-share.ts";
 
 const errors: string[] = [];
 const representativeArenaIds = new Set([3, 6, 73]);
 const commentIds = new Set<number>();
 const commentBodies = new Set<string>();
+const aiStylePhrases = [
+  "중요하다고 생각합니다",
+  "장기적인 관점에서",
+  "개인의 가치관에 따라",
+  "상황을 이해하는 것이 중요",
+  "두 선택지 모두 장단점",
+  "선택할 것 같습니다",
+  "더 합리적이라고 봅니다",
+];
 
 for (const comment of initialComments) {
   if (commentIds.has(comment.id)) {
@@ -16,6 +27,14 @@ for (const comment of initialComments) {
     errors.push(`중복 댓글 본문: ${comment.text}`);
   }
   commentBodies.add(comment.text);
+
+  const aiStylePhrase = aiStylePhrases.find((phrase) => comment.text.includes(phrase));
+  if (aiStylePhrase) {
+    errors.push(`AI 말투 감지 (${aiStylePhrase}): ${comment.text}`);
+  }
+  if (comment.text.length > 130) {
+    errors.push(`댓글 130자 초과 (${comment.text.length}자): ${comment.text}`);
+  }
 }
 
 for (const arena of arenas) {
@@ -23,6 +42,11 @@ for (const arena of arenas) {
   const aCommentCount = comments.filter((comment) => comment.side === "A").length;
   const bCommentCount = comments.filter((comment) => comment.side === "B").length;
   const stats = getArenaStats(arena, initialComments);
+  const shareTitle = getArenaShareTitle(arena);
+
+  if (shareTitle.length > 36) {
+    errors.push(`arena ${arena.id}: 공유 제목 ${shareTitle.length}자 (${shareTitle})`);
+  }
 
   if (stats.commentCount !== comments.length) {
     errors.push(
