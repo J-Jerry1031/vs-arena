@@ -8,10 +8,12 @@ import type {
   Side,
 } from "@/lib/arena-data";
 import {
+  LOCAL_COMMENTS_STORAGE_KEY,
   arenas,
   emptyReactions,
   getArenaBadge,
   getArenaStats,
+  getArenaStatsWithLocalComments,
 } from "@/lib/arena-data";
 
 type ArenaDetailClientProps = {
@@ -74,7 +76,6 @@ const getDetailWarMetrics = (arena: Arena, comments: ArenaComment[]) => {
   return {
     ...stats,
     gap: Math.abs(stats.aPercent - stats.bPercent),
-    displayComments: stats.displayCommentCount,
     recentTenComments: stats.recentComments,
     recentHourVotes: stats.recentVotes,
     reactionScore,
@@ -85,7 +86,7 @@ const getDetailHotBadges = (arena: Arena, comments: ArenaComment[]) => {
   const metrics = getDetailWarMetrics(arena, comments);
   const badges: { label: string; tone: string }[] = [];
 
-  if (metrics.displayComments >= 45) {
+  if (metrics.commentCount >= 45) {
     badges.push({ label: "HOT", tone: "bg-[#A53A4A] text-white" });
   }
 
@@ -112,7 +113,7 @@ export default function ArenaDetailClient({
   arena,
   initialComments,
 }: ArenaDetailClientProps) {
-  const [comments, setComments] = useState<ArenaComment[]>(initialComments);
+  const [localComments, setLocalComments] = useState<ArenaComment[]>([]);
   const [commentScope, setCommentScope] = useState<CommentScope>("all");
   const [commentOrder, setCommentOrder] = useState<CommentOrder>("new");
   const [selectedSide, setSelectedSide] = useState<Side>("A");
@@ -126,10 +127,14 @@ export default function ArenaDetailClient({
   const [now, setNow] = useState(0);
 
   const canJoinArena = arena.status !== "closed";
-  const arenaComments = useMemo(
-    () => comments.filter((comment) => comment.arenaId === arena.id),
-    [arena.id, comments]
+  const comments = useMemo(
+    () => [
+      ...initialComments,
+      ...localComments.filter((comment) => comment.arenaId === arena.id),
+    ],
+    [arena.id, initialComments, localComments]
   );
+  const arenaComments = comments;
   const stats = getDetailWarMetrics(arena, comments);
   const badge = getArenaBadge(arena, comments);
   const hotBadges = getDetailHotBadges(arena, comments);
@@ -150,6 +155,7 @@ export default function ArenaDetailClient({
     const lastAt = window.localStorage.getItem(`vs-arena-last-comment-${arena.id}`);
     const savedNickname = window.localStorage.getItem("vs_arena_nickname");
     const savedVote = window.localStorage.getItem(`vs_arena_vote_${arena.id}`) as Side | null;
+    const savedComments = window.localStorage.getItem(LOCAL_COMMENTS_STORAGE_KEY);
 
     window.setTimeout(() => {
       setNow(Date.now());
@@ -161,6 +167,14 @@ export default function ArenaDetailClient({
       if (savedVote === "A" || savedVote === "B") {
         setSelectedSide(savedVote);
         setVotedSide(savedVote);
+      }
+
+      if (savedComments) {
+        try {
+          setLocalComments(JSON.parse(savedComments) as ArenaComment[]);
+        } catch {
+          setLocalComments([]);
+        }
       }
 
       if (lastAt) {
@@ -226,8 +240,6 @@ export default function ArenaDetailClient({
     window.localStorage.setItem("vs_arena_nickname", nextNickname);
   };
 
-  const sideAComments = arenaComments.filter((comment) => comment.side === "A");
-  const sideBComments = arenaComments.filter((comment) => comment.side === "B");
   const visibleComments = useMemo(() => {
     const scoped =
       commentScope === "all"
@@ -268,20 +280,27 @@ export default function ArenaDetailClient({
     }
 
     const commentId = Date.now();
-    setComments((current) => [
-      {
-        id: commentId,
-        arenaId: arena.id,
-        side: selectedSide,
-        nickname: nickname.trim() || "익명의 논객",
-        text,
-        score: 0,
-        likes: 0,
-        reactions: emptyReactions(),
-        createdAt: Date.now(),
-      },
-      ...current,
-    ]);
+    const nextComment: ArenaComment = {
+      id: commentId,
+      arenaId: arena.id,
+      side: selectedSide,
+      nickname: nickname.trim() || "익명의 논객",
+      text,
+      score: 0,
+      likes: 0,
+      reactions: emptyReactions(),
+      createdAt: Date.now(),
+    };
+
+    setLocalComments((current) => {
+      const nextComments = [nextComment, ...current].slice(0, 100);
+
+      window.localStorage.setItem(
+        LOCAL_COMMENTS_STORAGE_KEY,
+        JSON.stringify(nextComments)
+      );
+      return nextComments;
+    });
     setFreshCommentIds((current) => new Set(current).add(commentId));
     setCommentScope("all");
     setCommentOrder("new");
@@ -423,13 +442,13 @@ export default function ArenaDetailClient({
         <div className="mt-4 grid grid-cols-2 border border-white/10 bg-black/25 text-center">
           <div className="border-r border-white/10 px-3 py-3">
             <div className="text-base font-black text-white sm:text-lg">
-              {stats.totalVotes.toLocaleString()}
+              {stats.voteCount.toLocaleString()}
             </div>
             <div className="text-xs text-zinc-500">누적 참여</div>
           </div>
           <div className="px-3 py-3">
             <div className="text-base font-black text-white sm:text-lg">
-              {stats.displayComments.toLocaleString()}
+              {stats.commentCount.toLocaleString()}
             </div>
             <div className="text-xs text-zinc-500">누적 댓글</div>
           </div>
@@ -574,13 +593,13 @@ export default function ArenaDetailClient({
         <section id="comment-zone" className="min-w-0 border border-white/10 bg-white/[0.018] p-4 sm:p-5">
           <div>
             <h2 className="text-xl font-black text-white">
-              댓글 {stats.displayComments.toLocaleString()}개
+              댓글 {stats.commentCount.toLocaleString()}개
             </h2>
             <p className="mt-1 text-sm font-bold text-zinc-500">
               다른 사람들은 왜 그쪽을 골랐을까?
             </p>
             <p className="mt-3 text-xs font-bold text-zinc-600">
-              A 의견 {sideAComments.length}개 · B 의견 {sideBComments.length}개
+              A 의견 {stats.aCommentCount}개 · B 의견 {stats.bCommentCount}개
             </p>
           </div>
 
@@ -679,7 +698,7 @@ export default function ArenaDetailClient({
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             {relatedArenas.map((item) => {
-              const relatedStats = getArenaStats(item);
+              const relatedStats = getArenaStatsWithLocalComments(item, localComments);
 
               return (
                 <Link
@@ -691,8 +710,8 @@ export default function ArenaDetailClient({
                     {item.title}
                   </div>
                   <div className="mt-2 text-xs font-bold text-zinc-500">
-                    참여 {relatedStats.totalVotes.toLocaleString()} · 댓글{" "}
-                    {relatedStats.displayCommentCount}
+                    참여 {relatedStats.voteCount.toLocaleString()} · 댓글{" "}
+                    {relatedStats.commentCount}
                   </div>
                 </Link>
               );

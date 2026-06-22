@@ -12,7 +12,6 @@ export type Arena = {
   status: ArenaStatus;
   heat: number;
   spectators: number;
-  commentsCount: number;
   recentCommentsCount: number;
   recentVotesCount: number;
   leftPercent: number;
@@ -26,7 +25,6 @@ export type Arena = {
 type ArenaSeed = Omit<
   Arena,
   | "spectators"
-  | "commentsCount"
   | "recentCommentsCount"
   | "recentVotesCount"
   | "leftPercent"
@@ -122,6 +120,8 @@ export const emptyReactions = (): Record<ReactionType, number> => ({
   fact: 0,
   funny: 0,
 });
+
+export const LOCAL_COMMENTS_STORAGE_KEY = "vs_arena_comments";
 
 const baseArenas: ArenaSeed[] = [
   {
@@ -541,7 +541,6 @@ export const arenas: Arena[] = [...baseArenas, ...extraArenas].map((arena) => {
     ...arena,
     heat,
     spectators: seededNumber(arena.id * 13 + arena.heat, 12, 180),
-    commentsCount: 0,
     recentCommentsCount: seededNumber(arena.id * 19 + heat, 1, 6),
     recentVotesCount: seededNumber(arena.id * 23 + heat, 4, 36),
     leftPercent,
@@ -959,15 +958,21 @@ export const getArenaStats = (
   return {
     aPercent,
     bPercent: 100 - aPercent,
+    voteCount: arena.totalVotes + localA + localB,
     commentCount: targetComments.length,
-    displayCommentCount: targetComments.length,
+    aCommentCount: targetComments.filter((comment) => comment.side === "A").length,
+    bCommentCount: targetComments.filter((comment) => comment.side === "B").length,
     recentComments: arena.recentCommentsCount,
     recentVotes: arena.recentVotesCount,
-    totalVotes: arena.totalVotes + localA + localB,
     heatScore,
     reactionScore,
   };
 };
+
+export const getArenaStatsWithLocalComments = (
+  arena: Arena,
+  localComments: ArenaComment[]
+) => getArenaStats(arena, [...initialComments, ...localComments]);
 
 export const getArenaBadge = (
   arena: Arena,
@@ -979,7 +984,7 @@ export const getArenaBadge = (
   if (arena.status === "closed") return "명경기 보관";
   if (diff <= 10) return "박빙";
   if (arena.heat >= 98) return "지금 제일 불탐";
-  if (stats.displayCommentCount >= 45) return "댓글 과열";
+  if (stats.commentCount >= 45) return "댓글 과열";
   if (stats.aPercent >= 70) return "A 우세";
   if (stats.bPercent >= 70) return "B 우세";
   if (arena.status === "upcoming") return "예열 중";

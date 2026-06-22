@@ -7,8 +7,9 @@ import {
   type Arena,
   type ArenaComment,
   type Side,
+  LOCAL_COMMENTS_STORAGE_KEY,
   arenas,
-  getArenaStats,
+  getArenaStatsWithLocalComments,
   getCommentScore,
   initialComments,
 } from "@/lib/arena-data";
@@ -116,8 +117,14 @@ const trackHomeEvent = (
   }
 };
 
-const MiniArenaCard = ({ arena }: { arena: Arena }) => {
-  const stats = getArenaStats(arena);
+const MiniArenaCard = ({
+  arena,
+  localComments,
+}: {
+  arena: Arena;
+  localComments: LocalComment[];
+}) => {
+  const stats = getArenaStatsWithLocalComments(arena, localComments);
 
   return (
     <Link
@@ -129,7 +136,7 @@ const MiniArenaCard = ({ arena }: { arena: Arena }) => {
           {arena.category}
         </span>
         <span className="text-xs font-bold text-zinc-500">
-          참여 {stats.totalVotes.toLocaleString()} · 댓글 {stats.displayCommentCount}
+          참여 {stats.voteCount.toLocaleString()} · 댓글 {stats.commentCount}
         </span>
       </div>
       <h3 className="mt-3 line-clamp-2 break-keep text-base font-black leading-snug text-white">
@@ -165,7 +172,7 @@ export default function Home() {
   const homeArenas = useMemo(() => getHomeArenas(), []);
   const featuredArena =
     homeArenas.find((arena) => arena.id === featuredArenaId) ?? homeArenas[0];
-  const featuredStats = getArenaStats(featuredArena, [...initialComments, ...localComments]);
+  const featuredStats = getArenaStatsWithLocalComments(featuredArena, localComments);
   const activeCategoryData =
     homeCategories.find((category) => category.id === activeCategory) ?? homeCategories[0];
   const categoryArenas =
@@ -177,8 +184,10 @@ export default function Home() {
   const dividedArenas = [...homeArenas]
     .filter((arena) => arena.id !== featuredArena.id)
     .sort((a, b) => {
-      const aGap = Math.abs(getArenaStats(a).aPercent - getArenaStats(a).bPercent);
-      const bGap = Math.abs(getArenaStats(b).aPercent - getArenaStats(b).bPercent);
+      const aStats = getArenaStatsWithLocalComments(a, localComments);
+      const bStats = getArenaStatsWithLocalComments(b, localComments);
+      const aGap = Math.abs(aStats.aPercent - aStats.bPercent);
+      const bGap = Math.abs(bStats.aPercent - bStats.bPercent);
 
       return aGap - bGap || getHomeRank(a) - getHomeRank(b);
     })
@@ -187,7 +196,8 @@ export default function Home() {
     .filter((arena) => arena.id !== featuredArena.id)
     .sort(
       (a, b) =>
-        getArenaStats(b).displayCommentCount - getArenaStats(a).displayCommentCount ||
+        getArenaStatsWithLocalComments(b, localComments).commentCount -
+          getArenaStatsWithLocalComments(a, localComments).commentCount ||
         getHomeRank(a) - getHomeRank(b)
     )
     .slice(0, 6);
@@ -201,7 +211,9 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const savedVote = window.localStorage.getItem(`vs_arena_vote_${featuredArena.id}`);
-      const savedComments = window.localStorage.getItem("vs_arena_home_comments");
+      const savedComments =
+        window.localStorage.getItem(LOCAL_COMMENTS_STORAGE_KEY) ??
+        window.localStorage.getItem("vs_arena_home_comments");
 
       if (savedVote === "A" || savedVote === "B") {
         setSelectedSide(savedVote);
@@ -209,7 +221,14 @@ export default function Home() {
 
       if (savedComments) {
         try {
-          setLocalComments(JSON.parse(savedComments) as LocalComment[]);
+          const parsedComments = JSON.parse(savedComments) as LocalComment[];
+
+          setLocalComments(parsedComments);
+          window.localStorage.setItem(
+            LOCAL_COMMENTS_STORAGE_KEY,
+            JSON.stringify(parsedComments)
+          );
+          window.localStorage.removeItem("vs_arena_home_comments");
         } catch {
           setLocalComments([]);
         }
@@ -257,10 +276,13 @@ export default function Home() {
       createdAt: Date.now(),
       isLocal: true,
     };
-    const nextComments = [nextComment, ...localComments];
+    const nextComments = [nextComment, ...localComments].slice(0, 100);
 
     setLocalComments(nextComments);
-    window.localStorage.setItem("vs_arena_home_comments", JSON.stringify(nextComments));
+    window.localStorage.setItem(
+      LOCAL_COMMENTS_STORAGE_KEY,
+      JSON.stringify(nextComments)
+    );
     trackHomeEvent("comment", featuredArena.id, { side: selectedSide });
     setCommentText("");
     showToast("댓글 남겼어. 이제 반응 볼 차례");
@@ -368,8 +390,8 @@ export default function Home() {
               </p>
             </div>
             <div className="text-right text-xs font-bold text-zinc-500">
-              <div>참여 {featuredStats.totalVotes.toLocaleString()}명</div>
-              <div>댓글 {featuredStats.displayCommentCount}개</div>
+              <div>참여 {featuredStats.voteCount.toLocaleString()}명</div>
+              <div>댓글 {featuredStats.commentCount}개</div>
             </div>
           </div>
 
@@ -598,7 +620,11 @@ export default function Home() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {categoryArenas.slice(0, 6).map((arena) => (
-              <MiniArenaCard key={arena.id} arena={arena} />
+              <MiniArenaCard
+                key={arena.id}
+                arena={arena}
+                localComments={localComments}
+              />
             ))}
           </div>
         </section>
@@ -613,7 +639,7 @@ export default function Home() {
               <h2 className="text-lg font-black text-white">{section.title}</h2>
               <div className="mt-3 space-y-3">
                 {section.arenas.slice(0, 5).map((arena) => {
-                  const stats = getArenaStats(arena);
+                  const stats = getArenaStatsWithLocalComments(arena, localComments);
 
                   return (
                     <Link
@@ -628,7 +654,7 @@ export default function Home() {
                         {arena.optionA} vs {arena.optionB}
                       </div>
                       <div className="mt-2 text-xs font-black text-zinc-600">
-                        참여 {stats.totalVotes.toLocaleString()} · 댓글 {stats.displayCommentCount} · {arena.category}
+                        참여 {stats.voteCount.toLocaleString()} · 댓글 {stats.commentCount} · {arena.category}
                       </div>
                     </Link>
                   );
